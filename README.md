@@ -40,6 +40,12 @@ make lint  # Run lint checks (ruff)
 
 ## Docker
 
+### Required Tools
+
+- **Docker**
+- **Docker Compose**
+- **Make** (for using Makefile targets)
+
 ### Build and Run with Makefile
 
 Build and run the containerized API using the semver-tagged version from `pyproject.toml`:
