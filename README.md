@@ -37,3 +37,16 @@ A lightweight REST API for managing student records built with Flask, Flask-SQLA
 make test  # Run tests (pytest)
 make lint  # Run lint checks (ruff)
 ```
+
+## Docker
+
+### Build and Run with Makefile
+
+Build and run the containerized API using the semver-tagged version from `pyproject.toml`:
+
+```bash
+make docker-build
+make docker-run
+```
+
+The container automatically runs database migrations on startup and will be accessible at `http://127.0.0.1:5000`.
