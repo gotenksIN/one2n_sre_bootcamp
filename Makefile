@@ -1,4 +1,4 @@
-.PHONY: run migrate test lint ruffcheck docker-build docker-run
+.PHONY: run migrate test lint ruffcheck docker-build docker-run compose-up compose-down
 
 run:
 	uv run flask --app app.main:app run
@@ -22,3 +22,9 @@ docker-build:
 
 docker-run:
 	docker run -p 5000:5000 --env-file .env $(IMAGE_NAME):$(VERSION)
+
+compose-up:
+	docker compose up --build -d
+
+compose-down:
+	docker compose down
