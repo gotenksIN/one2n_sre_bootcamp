@@ -50,3 +50,11 @@ make docker-run
 ```
 
 The container automatically runs database migrations on startup and will be accessible at `http://127.0.0.1:5000`.
+
+### Run with Docker Compose
+
+Alternatively, use Docker Compose:
+
+```bash
+docker compose up --build
+```
