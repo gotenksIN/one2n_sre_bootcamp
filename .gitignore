@@ -34,6 +34,11 @@ instance/
 *.sqlite3
 *.db
 
+# Vagrant
+.vagrant/
+*.box
+*.log
+
 # Editor/OS files
 .idea/
 .vscode/
