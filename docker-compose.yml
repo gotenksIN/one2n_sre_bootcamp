@@ -1,9 +1,21 @@
 services:
+  migrate:
+    build: .
+    image: rest-api:0.1.0
+    command: flask db upgrade
+    env_file:
+      - .env
+    volumes:
+      - sqlite-data:/app/instance
+
   rest-api:
     build: .
     image: rest-api:0.1.0
     ports:
       - "5000:5000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     env_file:
       - .env
     volumes:

@@ -21,4 +21,4 @@ COPY migrations/ migrations/
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "flask db upgrade && exec flask run --host=0.0.0.0 --port=5000"]
+CMD ["sh", "-c", "exec flask run --host=0.0.0.0 --port=5000"]
