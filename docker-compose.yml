@@ -1,7 +1,7 @@
 services:
   migrate:
     build: .
-    image: rest-api:0.1.0
+    image: rest-api:${VERSION:-latest}
     command: flask db upgrade
     env_file:
       - .env
@@ -10,7 +10,7 @@ services:
 
   rest-api:
     build: .
-    image: rest-api:0.1.0
+    image: rest-api:${VERSION:-latest}
     ports:
       - "5000:5000"
     depends_on:

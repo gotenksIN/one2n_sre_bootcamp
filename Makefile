@@ -24,7 +24,7 @@ docker-run:
 	docker run -p 5000:5000 --env-file .env $(IMAGE_NAME):$(VERSION)
 
 compose-up:
-	docker compose up --build -d
+	VERSION=$(VERSION) docker compose up --build -d
 
 compose-down:
 	docker compose down
