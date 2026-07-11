@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "api.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "api.selectorLabels" . | nindent 8 }}
+      annotations:
+        vault.hashicorp.com/agent-inject: {{ .Values.vaultInjector.enabled | quote }}
+        vault.hashicorp.com/agent-init-first: "true"
+        vault.hashicorp.com/role: {{ .Values.vaultInjector.role | quote }}
+        vault.hashicorp.com/agent-inject-secret-config: {{ printf "%s/data/%s" .Values.vaultInjector.secretPath .Values.vaultInjector.secretSubPath | quote }}
+        vault.hashicorp.com/agent-inject-template-config: |
+          {{ "{{- with secret \"" }}{{ printf "%s/data/%s" .Values.vaultInjector.secretPath .Values.vaultInjector.secretSubPath }}{{ "\" -}}" }}
+          DATABASE_URL=postgresql://{{ .Values.config.databaseUser }}:{{ "{{ .Data.data.postgresPassword }}" }}@{{ .Values.config.databaseHost }}:{{ .Values.config.databasePort }}/{{ .Values.config.databaseName }}
+          SECRET_KEY={{ "{{ .Data.data.secretKey }}" }}
+          {{ "{{- end }}" }}
+    spec:
+      serviceAccountName: {{ include "api.fullname" . }}
+      {{- if .Values.nodeAffinity.enabled }}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: {{ .Values.nodeAffinity.key }}
+                    operator: In
+                    values:
+                      - {{ .Values.nodeAffinity.value }}
+      {{- end }}
+      initContainers:
+        {{- if .Values.waitForPostgres.enabled }}
+        - name: wait-for-postgres
+          image: {{ .Values.waitForPostgres.image.repository }}:{{ .Values.waitForPostgres.image.tag }}
+          imagePullPolicy: {{ .Values.waitForPostgres.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - until pg_isready -h {{ .Values.config.databaseHost }} -p {{ .Values.config.databasePort }} -d {{ .Values.config.databaseName }}; do echo waiting for postgres; sleep 2; done
+          resources:
+            {{- toYaml .Values.waitForPostgresResources | nindent 12 }}
+        {{- end }}
+        {{- if .Values.migration.enabled }}
+        - name: db-migrate
+          image: {{ include "api.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              while [ ! -f /vault/secrets/config ]; do
+                echo "Waiting for Vault secrets..."
+                sleep 2
+              done
+              cp /vault/secrets/config /app/.env
+              flask --app app.main:app db upgrade
+          envFrom:
+            - configMapRef:
+                name: {{ include "api.fullname" . }}-config
+          resources:
+            {{- toYaml .Values.migrationResources | nindent 12 }}
+        {{- end }}
+      containers:
+        - name: {{ include "api.name" . }}
+          image: {{ include "api.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          command:
+            - sh
+            - -c
+            - |
+              while [ ! -f /vault/secrets/config ]; do
+                echo "Waiting for Vault secrets..."
+                sleep 2
+              done
+              cp /vault/secrets/config /app/.env
+              exec flask --app app.main:app run --host=0.0.0.0 --port=5000
+          envFrom:
+            - configMapRef:
+                name: {{ include "api.fullname" . }}-config
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.livenessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}

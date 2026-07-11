@@ -1,0 +1,12 @@
+apiVersion: v2
+name: stack
+description: Helm chart for the REST API stack
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: vault
+    version: 0.34.0
+    repository: https://helm.releases.hashicorp.com
+    condition: vault.enabled

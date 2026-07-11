@@ -1,0 +1,71 @@
+{{- if .Values.vaultBootstrap.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-vault-bootstrap
+  namespace: {{ .Values.namespaces.vault }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: {{ .Values.vaultBootstrap.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ .Values.vaultBootstrap.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: vault-bootstrap
+          image: {{ .Values.vaultBootstrap.image.repository }}:{{ .Values.vaultBootstrap.image.tag }}
+          imagePullPolicy: {{ .Values.vaultBootstrap.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              export VAULT_ADDR={{ .Values.vaultBootstrap.vaultAddress | quote }}
+              export VAULT_TOKEN={{ .Values.vaultBootstrap.rootToken | quote }}
+
+              attempts=0
+              until vault status >/dev/null 2>&1; do
+                attempts=$((attempts + 1))
+                if [ "$attempts" -ge {{ .Values.vaultBootstrap.vaultStatusRetries }} ]; then
+                  echo "vault did not become ready after $attempts attempts"
+                  exit 1
+                fi
+                echo "waiting for vault"
+                sleep 2
+              done
+
+              vault secrets enable -path={{ .Values.vaultBootstrap.secretPath }} kv-v2 2>/dev/null || true
+              vault kv put {{ .Values.vaultBootstrap.secretPath }}/{{ .Values.vaultBootstrap.secretSubPath }} \
+                postgresPassword={{ .Values.vaultBootstrap.postgresPassword | quote }} \
+                secretKey={{ .Values.vaultBootstrap.flaskSecretKey | quote }}
+
+              cat > /tmp/app-policy.hcl <<EOF
+              path "{{ .Values.vaultBootstrap.secretPath }}/data/{{ .Values.vaultBootstrap.secretSubPath }}" {
+                capabilities = ["read"]
+              }
+              EOF
+              vault policy write {{ .Values.vaultBootstrap.policyName }} /tmp/app-policy.hcl
+
+              vault auth enable kubernetes 2>/dev/null || true
+              vault write auth/kubernetes/config \
+                kubernetes_host="https://kubernetes.default.svc.cluster.local"
+              vault write auth/kubernetes/role/{{ .Values.vaultBootstrap.kubernetesRole }} \
+                bound_service_account_names={{ .Values.vaultBootstrap.apiServiceAccount }} \
+                bound_service_account_namespaces={{ .Release.Namespace }} \
+                policies={{ .Values.vaultBootstrap.policyName }} \
+                ttl=1h
+          resources:
+            {{- toYaml .Values.vaultBootstrap.resources | nindent 12 }}
+{{- end }}

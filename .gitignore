@@ -39,6 +39,9 @@ instance/
 *.box
 *.log
 
+# Helm
+*.tgz
+
 # Editor/OS files
 .idea/
 .vscode/
