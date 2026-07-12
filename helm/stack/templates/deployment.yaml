@@ -27,6 +27,14 @@ spec:
           {{ "{{- end }}" }}
     spec:
       serviceAccountName: {{ include "api.fullname" . }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if .Values.nodeAffinity.enabled }}
       affinity:
         nodeAffinity:
@@ -59,11 +67,16 @@ spec:
             - sh
             - -c
             - |
+              elapsed=0
               while [ ! -f /vault/secrets/config ]; do
-                echo "Waiting for Vault secrets..."
-                sleep 2
+                if [ "$elapsed" -ge {{ .Values.vaultSecretWaitTimeout }} ]; then
+                  echo "Timed out waiting for Vault secrets after ${elapsed}s"
+                  exit 1
+                fi
+                elapsed=$((elapsed + 1))
+                sleep 1
               done
-              cp /vault/secrets/config /app/.env
+              set -a && . /vault/secrets/config && set +a
               flask --app app.main:app db upgrade
           envFrom:
             - configMapRef:
@@ -82,17 +95,36 @@ spec:
             - sh
             - -c
             - |
+              elapsed=0
               while [ ! -f /vault/secrets/config ]; do
-                echo "Waiting for Vault secrets..."
-                sleep 2
+                if [ "$elapsed" -ge {{ .Values.vaultSecretWaitTimeout }} ]; then
+                  echo "Timed out waiting for Vault secrets after ${elapsed}s"
+                  exit 1
+                fi
+                elapsed=$((elapsed + 1))
+                sleep 1
               done
-              cp /vault/secrets/config /app/.env
-              exec flask --app app.main:app run --host=0.0.0.0 --port=5000
+              set -a && . /vault/secrets/config && set +a
+              exec flask --app app.main:app run --host=0.0.0.0 --port={{ .Values.service.port }}
           envFrom:
             - configMapRef:
                 name: {{ include "api.fullname" . }}-config
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.startupProbe.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          {{- end }}
           readinessProbe:
             httpGet:
               path: {{ .Values.readinessProbe.path }}

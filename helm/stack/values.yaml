@@ -5,9 +5,11 @@ replicaCount: 1
 revisionHistoryLimit: 3
 
 image:
-  repository: rest-api
+  repository: ghcr.io/gotenksin/rest-api
   tag: "0.1.0"
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
+
+imagePullSecrets: []
 
 service:
   type: NodePort
@@ -36,6 +38,8 @@ waitForPostgres:
     repository: postgres
     tag: 18-alpine
     pullPolicy: IfNotPresent
+
+vaultSecretWaitTimeout: 120
 
 nodeAffinity:
   enabled: true
@@ -66,6 +70,14 @@ waitForPostgresResources:
     cpu: 100m
     memory: 64Mi
 
+startupProbe:
+  enabled: true
+  path: /api/v1/healthcheck
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 24
+
 readinessProbe:
   path: /api/v1/healthcheck
   initialDelaySeconds: 5
@@ -79,6 +91,21 @@ livenessProbe:
   periodSeconds: 20
   timeoutSeconds: 5
   failureThreshold: 3
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
 
 vaultBootstrap:
   enabled: true
@@ -96,7 +123,6 @@ vaultBootstrap:
   policyName: app
   kubernetesRole: app
   apiServiceAccount: stack
-  vaultAudience: vault
   activeDeadlineSeconds: 180
   ttlSecondsAfterFinished: 600
   vaultStatusRetries: 60
@@ -152,6 +178,19 @@ postgresql:
     enabled: true
     key: app/node-role
     value: database
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 70
+    runAsGroup: 70
+    fsGroup: 70
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
   resources:
     requests:
       cpu: 100m
@@ -159,3 +198,10 @@ postgresql:
     limits:
       cpu: 500m
       memory: 512Mi
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
