@@ -105,7 +105,7 @@ spec:
                 sleep 1
               done
               set -a && . /vault/secrets/config && set +a
-              exec flask --app app.main:app run --host=0.0.0.0 --port={{ .Values.service.port }}
+              exec gunicorn app.main:app --bind 0.0.0.0:{{ .Values.service.port }} --access-logfile - --error-logfile -
           envFrom:
             - configMapRef:
                 name: {{ include "api.fullname" . }}-config
