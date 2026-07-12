@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stack
+  namespace: argocd
+spec:
+  project: bootcamp
+  source:
+    repoURL: https://github.com/gotenksIN/one2n_sre_bootcamp.git
+    targetRevision: master
+    path: helm/stack
+    helm:
+      releaseName: stack
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
