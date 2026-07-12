@@ -1,51 +1,40 @@
 namespaces:
   vault: vault
-
 replicaCount: 1
 revisionHistoryLimit: 3
-
 image:
   repository: ghcr.io/gotenksin/rest-api
-  tag: "0.1.0"
+  tag: eb62c8f3a70e
   pullPolicy: Always
-
 imagePullSecrets: []
-
 service:
   type: NodePort
   port: 5000
   nodePort: 30080
-
 config:
-  flaskDebug: "0"
+  flaskDebug: '0'
   databaseHost: stack-postgresql
-  databasePort: "5432"
+  databasePort: '5432'
   databaseName: app
   databaseUser: app
-
 vaultInjector:
   enabled: true
   role: app
   secretPath: secret
   secretSubPath: app
-
 migration:
   enabled: true
-
 waitForPostgres:
   enabled: true
   image:
     repository: postgres
     tag: 18-alpine
     pullPolicy: IfNotPresent
-
 vaultSecretWaitTimeout: 120
-
 nodeAffinity:
   enabled: true
   key: app/node-role
   value: application
-
 resources:
   requests:
     cpu: 100m
@@ -53,7 +42,6 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
-
 migrationResources:
   requests:
     cpu: 50m
@@ -61,7 +49,6 @@ migrationResources:
   limits:
     cpu: 250m
     memory: 256Mi
-
 waitForPostgresResources:
   requests:
     cpu: 25m
@@ -69,7 +56,6 @@ waitForPostgresResources:
   limits:
     cpu: 100m
     memory: 64Mi
-
 startupProbe:
   enabled: true
   path: /api/v1/healthcheck
@@ -77,21 +63,18 @@ startupProbe:
   periodSeconds: 5
   timeoutSeconds: 5
   failureThreshold: 24
-
 readinessProbe:
   path: /api/v1/healthcheck
   initialDelaySeconds: 5
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
-
 livenessProbe:
   path: /api/v1/healthcheck
   initialDelaySeconds: 20
   periodSeconds: 20
   timeoutSeconds: 5
   failureThreshold: 3
-
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 10001
@@ -99,19 +82,17 @@ podSecurityContext:
   fsGroup: 10001
   seccompProfile:
     type: RuntimeDefault
-
 containerSecurityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
   capabilities:
     drop:
-      - ALL
-
+    - ALL
 vaultBootstrap:
   enabled: true
   image:
     repository: hashicorp/vault
-    tag: "1.20"
+    tag: '1.20'
     pullPolicy: IfNotPresent
   serviceAccountName: vault-bootstrap
   vaultAddress: http://stack-vault.vault.svc.cluster.local:8200
@@ -133,7 +114,6 @@ vaultBootstrap:
     limits:
       cpu: 250m
       memory: 256Mi
-
 vault:
   enabled: true
   global:
@@ -144,16 +124,10 @@ vault:
     dev:
       enabled: true
       devRootToken: root
-    affinity: |
-      nodeAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            preference:
-              matchExpressions:
-                - key: app/node-role
-                  operator: In
-                  values:
-                    - dependent-services
+    affinity: "nodeAffinity:\n  preferredDuringSchedulingIgnoredDuringExecution:\n\
+      \    - weight: 100\n      preference:\n        matchExpressions:\n         \
+      \ - key: app/node-role\n            operator: In\n            values:\n    \
+      \          - dependent-services\n"
     resources:
       requests:
         cpu: 100m
@@ -163,11 +137,10 @@ vault:
         memory: 512Mi
   ui:
     enabled: true
-
 postgresql:
   image:
     repository: postgres
-    tag: "18-alpine"
+    tag: 18-alpine
     pullPolicy: IfNotPresent
   auth:
     username: app
@@ -190,7 +163,7 @@ postgresql:
     readOnlyRootFilesystem: false
     capabilities:
       drop:
-        - ALL
+      - ALL
   resources:
     requests:
       cpu: 100m
@@ -198,10 +171,8 @@ postgresql:
     limits:
       cpu: 500m
       memory: 512Mi
-
 podDisruptionBudget:
   enabled: true
   minAvailable: 1
-
 networkPolicy:
   enabled: true
