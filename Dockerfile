@@ -1,6 +1,6 @@
 FROM ghcr.io/astral-sh/uv:python3.14-trixie-slim AS builder
 
-WORKDIR /build
+WORKDIR /app
 
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
@@ -19,7 +19,7 @@ WORKDIR /app
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-COPY --from=builder --chown=appuser:appuser /build/.venv /app/.venv
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 COPY --chown=appuser:appuser app/ app/
 COPY --chown=appuser:appuser migrations/ migrations/
 

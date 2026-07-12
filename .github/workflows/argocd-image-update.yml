@@ -31,6 +31,7 @@ jobs:
       - name: Check runner tools
         run: |
           docker --version
+          docker compose version
           docker buildx version
           gh --version
 
@@ -47,7 +48,9 @@ jobs:
         run: uv run ruff check .
 
       - name: Test
-        run: uv run pytest
+        run: |
+          cp .env.test.example .env.test
+          make test
 
       - name: Set image tag
         id: meta

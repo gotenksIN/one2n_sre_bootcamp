@@ -1,12 +1,27 @@
 services:
+  postgres:
+    image: postgres:18-alpine
+    env_file:
+      - .env
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
   migrate:
     build: .
     image: rest-api:${VERSION:-latest}
     command: flask db upgrade
+    depends_on:
+      postgres:
+        condition: service_healthy
     env_file:
       - .env
-    volumes:
-      - sqlite-data:/app/instance
 
   rest-api:
     build: .
@@ -18,8 +33,6 @@ services:
         condition: service_completed_successfully
     env_file:
       - .env
-    volumes:
-      - sqlite-data:/app/instance
 
 volumes:
-  sqlite-data:
+  postgres-data:

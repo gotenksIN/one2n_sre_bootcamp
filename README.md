@@ -1,26 +1,26 @@
 # Student REST API
 
-A lightweight REST API for managing student records built with Flask, Flask-SQLAlchemy, and SQLite.
+A lightweight REST API for managing student records built with Flask, Flask-SQLAlchemy, and PostgreSQL.
 
 ## Prerequisites
 
-- **Python 3.14+**
-- **uv** (Python package manager)
+- **Docker**
+- **Docker Compose**
+- **Python 3.14+** and **uv** for tests/linting
 
 ## Quick Start
 
 1. **Configure Environment**
    ```bash
    cp .env.example .env
+   cp .env.test.example .env.test
    ```
 
-2. **Setup and Run**
+2. **Run with Docker Compose**
    ```bash
-   uv sync
-   make migrate
    make run
    ```
-   The server will start on `http://127.0.0.1:5000`.
+   Compose starts PostgreSQL, runs database migrations, and starts the API at `http://127.0.0.1:5000`.
 
 ## API Endpoints
 
@@ -34,33 +34,27 @@ A lightweight REST API for managing student records built with Flask, Flask-SQLA
 ## Development
 
 ```bash
-make test  # Run tests (pytest)
+make test  # Run tests against Dockerized PostgreSQL
 make lint  # Run lint checks (ruff)
 ```
 
 ## Docker
 
-### Required Tools
+### Local Stack
 
-- **Docker**
-- **Docker Compose**
-- **Make** (for using Makefile targets)
-
-### Build and Run with Makefile
-
-Build and run the containerized API using the semver-tagged version from `pyproject.toml`:
+Run the containerized API and PostgreSQL using the semver-tagged version from `pyproject.toml`:
 
 ```bash
-make docker-build
-make docker-run
+make run
 ```
 
 The container automatically runs database migrations on startup and will be accessible at `http://127.0.0.1:5000`.
 
-### Run with Docker Compose
-
-Alternatively, use Docker Compose:
+Useful local commands:
 
 ```bash
-docker compose up --build
+make logs     # Follow logs
+make migrate  # Run migrations
+make down     # Stop containers
+make clean    # Stop containers and remove the database volume
 ```

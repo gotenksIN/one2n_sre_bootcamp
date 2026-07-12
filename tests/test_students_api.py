@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from app import create_app
@@ -6,14 +8,19 @@ from app.models import db
 
 @pytest.fixture()
 def app():
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        pytest.fail("DATABASE_URL must be set for tests")
+
     app = create_app(
         {
             "TESTING": True,
-            "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            "SQLALCHEMY_DATABASE_URI": database_url,
         }
     )
 
     with app.app_context():
+        db.drop_all()
         db.create_all()
         yield app
         db.session.remove()
