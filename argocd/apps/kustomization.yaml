@@ -3,5 +3,4 @@ kind: Kustomization
 
 resources:
   - project.yaml
-  - repo-secret.yaml
   - stack-application.yaml
