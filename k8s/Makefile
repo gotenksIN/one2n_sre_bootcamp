@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: cluster build image-load-minikube image-load-kind eso-install vault bootstrap deploy wait status port-forward delete
+.PHONY: cluster label-nodes build image-load-minikube image-load-kind eso-install vault bootstrap deploy wait status port-forward delete
 
 IMAGE_NAME := rest-api
 VERSION := $(shell grep -m 1 "version =" ../pyproject.toml | cut -d '"' -f 2)
@@ -19,6 +19,12 @@ DEPENDENT_SERVICES_AFFINITY := '{"spec":{"template":{"spec":{"affinity":{"nodeAf
 
 cluster:
 	minikube start --nodes 3
+	$(MAKE) label-nodes
+
+label-nodes:
+	kubectl label node minikube type=application --overwrite
+	kubectl label node minikube-m02 type=database --overwrite
+	kubectl label node minikube-m03 type=dependent_services --overwrite
 
 build:
 	docker build -t $(IMAGE) ..

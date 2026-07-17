@@ -27,8 +27,16 @@ Vault runs in dev mode for this exercise.
 make cluster
 ```
 
-Three nodes are created: `minikube`, `minikube-m02`, `minikube-m03`.
-Label them for workload scheduling (see [Node Labels](#node-labels)).
+Three nodes are created and automatically labeled:
+- `minikube` — `type=application`
+- `minikube-m02` — `type=database`
+- `minikube-m03` — `type=dependent_services`
+
+To label an existing cluster without recreating it:
+
+```bash
+make label-nodes
+```
 
 ### Build And Load Image
 
@@ -104,11 +112,9 @@ kubectl describe externalsecret -n student-api student-api-secret
 
 ## Node Labels
 
-After creating the three-node cluster, label the nodes so workloads
-schedule correctly:
+Labels are applied automatically by `make cluster`. To re-label an
+existing cluster:
 
 ```bash
-kubectl label node minikube type=application --overwrite
-kubectl label node minikube-m02 type=database --overwrite
-kubectl label node minikube-m03 type=dependent_services --overwrite
+make label-nodes
 ```
