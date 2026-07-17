@@ -13,6 +13,8 @@ def create_app(config_override=None):
     migrate.init_app(app, db)
 
     from .api.v1 import api_v1
+    from .errors import register_error_handlers
 
     app.register_blueprint(api_v1)
+    register_error_handlers(app)
     return app
