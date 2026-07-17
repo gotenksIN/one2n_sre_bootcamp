@@ -171,3 +171,29 @@ def test_update_student_rejects_non_integer_age(client):
 
     assert response.status_code == 400
     assert response.get_json() == {"error": "Age must be an integer"}
+
+
+def test_livez_returns_alive(client):
+    response = client.get("/api/v1/livez")
+
+    assert response.status_code == 200
+    assert response.get_json() == {"status": "alive"}
+
+
+def test_readyz_returns_ready(client):
+    response = client.get("/api/v1/readyz")
+
+    assert response.status_code == 200
+    assert response.get_json() == {"status": "ready"}
+
+
+def test_readyz_returns_503_when_db_down():
+    app = create_app(
+        {"TESTING": True, "SQLALCHEMY_DATABASE_URI": "postgresql://invalid:5432/db"}
+    )
+    client = app.test_client()
+
+    response = client.get("/api/v1/readyz")
+
+    assert response.status_code == 503
+    assert response.get_json() == {"status": "not ready"}
