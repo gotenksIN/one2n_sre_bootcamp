@@ -13,6 +13,7 @@ spec:
       releaseName: stack
       valueFiles:
         - values.yaml
+        - values-local.yaml.example
   destination:
     server: https://kubernetes.default.svc
     namespace: student-api
