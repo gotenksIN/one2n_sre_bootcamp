@@ -47,7 +47,7 @@ make wait
 
 Namespaces:
 
-- `app` - API and PostgreSQL
+- `student-api` - API and PostgreSQL
 - `vault` - Vault and Vault Agent injector
 
 Default local secrets are in `stack/values.yaml`:

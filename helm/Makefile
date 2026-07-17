@@ -4,7 +4,7 @@ IMAGE_NAME := rest-api
 IMAGE := $(IMAGE_NAME):$(APP_VERSION)
 
 RELEASE := stack
-NAMESPACE := app
+NAMESPACE := student-api
 CHART := stack
 SET_IMAGE := --set image.repository=$(IMAGE_NAME) --set image.tag=$(APP_VERSION)
 
