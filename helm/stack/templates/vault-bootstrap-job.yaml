@@ -1,7 +1,7 @@
 {{- if .Values.vaultBootstrap.enabled }}
-{{- required "vaultBootstrap.rootToken is required when vaultBootstrap is enabled" .Values.vaultBootstrap.rootToken -}}
-{{- required "vaultBootstrap.postgresPassword is required when vaultBootstrap is enabled" .Values.vaultBootstrap.postgresPassword -}}
-{{- required "vaultBootstrap.flaskSecretKey is required when vaultBootstrap is enabled" .Values.vaultBootstrap.flaskSecretKey -}}
+{{- $rootToken := required "vaultBootstrap.rootToken is required when vaultBootstrap is enabled" .Values.vaultBootstrap.rootToken -}}
+{{- $postgresPassword := required "vaultBootstrap.postgresPassword is required when vaultBootstrap is enabled" .Values.vaultBootstrap.postgresPassword -}}
+{{- $flaskSecretKey := required "vaultBootstrap.flaskSecretKey is required when vaultBootstrap is enabled" .Values.vaultBootstrap.flaskSecretKey -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -36,7 +36,7 @@ spec:
             - |
               set -eu
               export VAULT_ADDR={{ .Values.vaultBootstrap.vaultAddress | quote }}
-              export VAULT_TOKEN={{ .Values.vaultBootstrap.rootToken | quote }}
+              export VAULT_TOKEN={{ $rootToken | quote }}
 
               attempts=0
               until vault status >/dev/null 2>&1; do
@@ -51,8 +51,8 @@ spec:
 
               vault secrets enable -path={{ .Values.vaultBootstrap.secretPath }} kv-v2 2>/dev/null || true
               vault kv put {{ .Values.vaultBootstrap.secretPath }}/{{ .Values.vaultBootstrap.secretSubPath }} \
-                postgresPassword={{ .Values.vaultBootstrap.postgresPassword | quote }} \
-                secretKey={{ .Values.vaultBootstrap.flaskSecretKey | quote }}
+                postgresPassword={{ $postgresPassword | quote }} \
+                secretKey={{ $flaskSecretKey | quote }}
 
               cat > /tmp/app-policy.hcl <<EOF
               path "{{ .Values.vaultBootstrap.secretPath }}/data/{{ .Values.vaultBootstrap.secretSubPath }}" {
