@@ -33,7 +33,7 @@ waitForPostgres:
 vaultSecretWaitTimeout: 120
 nodeAffinity:
   enabled: true
-  key: app/node-role
+  key: type
   value: application
 resources:
   requests:
@@ -126,8 +126,8 @@ vault:
       devRootToken: root
     affinity: "nodeAffinity:\n  preferredDuringSchedulingIgnoredDuringExecution:\n\
       \    - weight: 100\n      preference:\n        matchExpressions:\n         \
-      \ - key: app/node-role\n            operator: In\n            values:\n    \
-      \          - dependent-services\n"
+      \ - key: type\n            operator: In\n            values:\n    \
+      \          - dependent_services\n"
     resources:
       requests:
         cpu: 100m
@@ -149,7 +149,7 @@ postgresql:
     size: 1Gi
   nodeAffinity:
     enabled: true
-    key: app/node-role
+    key: type
     value: database
   podSecurityContext:
     runAsNonRoot: true
