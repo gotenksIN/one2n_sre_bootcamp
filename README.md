@@ -59,6 +59,9 @@ The container automatically runs database migrations on startup and will be acce
 Useful local commands:
 
 ```bash
+make build    # Build the API image
+make db-up    # Start PostgreSQL only
+make api-up   # Start DB, run migrations, start API
 make logs     # Follow logs
 make migrate  # Run migrations
 make down     # Stop containers
