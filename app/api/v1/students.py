@@ -2,6 +2,7 @@ from flask import current_app, jsonify, request
 
 from ...extensions import db
 from ...models import Student
+from ...schemas.student import validate_create_student, validate_update_student
 from . import api_v1
 
 
@@ -9,10 +10,8 @@ from . import api_v1
 def add_student():
     """Create a new student."""
     data = request.get_json(silent=True)
-    if not data or "name" not in data or "age" not in data:
-        current_app.logger.warning("Student creation failed: missing name or age")
-        return jsonify({"error": "Name and age are required"}), 400
-    student = Student(name=data["name"], age=data["age"])
+    validated = validate_create_student(data)
+    student = Student(name=validated["name"], age=validated["age"])
     db.session.add(student)
     db.session.commit()
     current_app.logger.info("Student created", extra={"student_id": student.id})
@@ -52,16 +51,11 @@ def update_student(student_id):
         )
         return jsonify({"error": "Student not found"}), 404
     data = request.get_json(silent=True)
-    if not data:
-        current_app.logger.warning(
-            "Student update failed: invalid JSON payload",
-            extra={"student_id": student_id},
-        )
-        return jsonify({"error": "Invalid JSON payload"}), 400
-    if "name" in data:
-        student.name = data["name"]
-    if "age" in data:
-        student.age = data["age"]
+    validated = validate_update_student(data)
+    if "name" in validated:
+        student.name = validated["name"]
+    if "age" in validated:
+        student.age = validated["age"]
     db.session.commit()
     current_app.logger.info("Student updated", extra={"student_id": student.id})
     return jsonify(student.to_dict()), 200

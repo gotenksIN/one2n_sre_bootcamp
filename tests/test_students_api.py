@@ -130,3 +130,44 @@ def test_delete_student_returns_404_when_missing(client):
 
     assert response.status_code == 404
     assert response.get_json() == {"error": "Student not found"}
+
+
+def test_create_student_rejects_non_string_name(client):
+    response = client.post("/api/v1/students", json={"name": 123, "age": 21})
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Name must be a non-empty string"}
+
+
+def test_create_student_rejects_non_integer_age(client):
+    response = client.post("/api/v1/students", json={"name": "Alice", "age": "old"})
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Age must be an integer"}
+
+
+def test_create_student_rejects_non_json_body(client):
+    response = client.post(
+        "/api/v1/students", data="not json", content_type="text/plain"
+    )
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Request must be valid JSON"}
+
+
+def test_update_student_rejects_non_string_name(client):
+    create_student(client)
+
+    response = client.put("/api/v1/students/1", json={"name": 456})
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Name must be a non-empty string"}
+
+
+def test_update_student_rejects_non_integer_age(client):
+    create_student(client)
+
+    response = client.put("/api/v1/students/1", json={"age": "young"})
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "Age must be an integer"}
