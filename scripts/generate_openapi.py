@@ -67,6 +67,25 @@ def build_spec(version):
     )
 
     spec.components.schema(
+        "StudentListResponse",
+        {
+            "type": "object",
+            "required": ["students", "total", "limit", "offset"],
+            "properties": {
+                "students": {"type": "array", "items": _ref("Student")},
+                "total": {"type": "integer", "minimum": 0, "example": 42},
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20,
+                },
+                "offset": {"type": "integer", "minimum": 0, "default": 0},
+            },
+        },
+    )
+
+    spec.components.schema(
         "Error",
         {
             "type": "object",
@@ -151,6 +170,7 @@ def build_spec(version):
     )
 
     student = _ref("Student")
+    student_list_response = _ref("StudentListResponse")
     error = _ref("Error")
     message = _ref("Message")
 
@@ -158,17 +178,36 @@ def build_spec(version):
         path="/api/v1/students",
         operations={
             "get": {
-                "summary": "List all students",
-                "description": "Retrieves all student records.",
+                "summary": "List students",
+                "description": "Retrieves student records with pagination.",
                 "tags": ["students"],
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": False,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 20,
+                        },
+                        "description": "Maximum number of students to return.",
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "required": False,
+                        "schema": {"type": "integer", "minimum": 0, "default": 0},
+                        "description": (
+                            "Number of students to skip before returning results."
+                        ),
+                    },
+                ],
                 "responses": {
                     "200": {
-                        "description": "Array of student objects.",
-                        "content": {
-                            "application/json": {
-                                "schema": {"type": "array", "items": student},
-                            },
-                        },
+                        "description": "Paginated student list.",
+                        **_json(student_list_response),
                     },
                 },
             },
