@@ -21,7 +21,9 @@ def create_app(config_override=None):
 
     from .api.v1 import api_v1
     from .errors import register_error_handlers
+    from .logging import setup_logging
 
+    setup_logging(app)
     app.register_blueprint(api_v1)
     register_error_handlers(app)
     return app

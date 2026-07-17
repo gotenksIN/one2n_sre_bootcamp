@@ -212,3 +212,26 @@ def test_create_app_fails_without_secret_key():
                 "SECRET_KEY": None,
             }
         )
+
+
+def test_response_includes_x_request_id(client):
+    response = client.get("/api/v1/healthcheck")
+
+    assert response.status_code == 200
+    assert "X-Request-ID" in response.headers
+
+
+def test_x_request_id_is_echoed_when_provided(client):
+    response = client.get(
+        "/api/v1/healthcheck", headers={"X-Request-ID": "test-id-123"}
+    )
+
+    assert response.status_code == 200
+    assert response.headers["X-Request-ID"] == "test-id-123"
+
+
+def test_x_request_id_present_on_error_responses(client):
+    response = client.get("/api/v1/students/999")
+
+    assert response.status_code == 404
+    assert "X-Request-ID" in response.headers
