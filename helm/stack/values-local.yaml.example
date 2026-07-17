@@ -5,6 +5,12 @@
 #   make install  # reads values-local.yaml automatically
 #
 # Do not commit values-local.yaml.
+#
+# WARNING: These are demo-only values for local Minikube/KIND clusters.
+# For CI/CD or production, supply secrets via:
+#   - CI/CD secret injection (e.g. GitHub Actions secrets) via --set
+#   - External Secrets Operator with a Vault/cloud secret store
+#   - Sealed Secrets or a GitOps-friendly secret manager
 
 vaultBootstrap:
   rootToken: root
