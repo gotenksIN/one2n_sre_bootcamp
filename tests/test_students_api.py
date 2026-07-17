@@ -197,3 +197,18 @@ def test_readyz_returns_503_when_db_down():
 
     assert response.status_code == 503
     assert response.get_json() == {"status": "not ready"}
+
+
+def test_create_app_fails_without_database_url():
+    with pytest.raises(RuntimeError, match="DATABASE_URL must be set"):
+        create_app({"SQLALCHEMY_DATABASE_URI": None})
+
+
+def test_create_app_fails_without_secret_key():
+    with pytest.raises(RuntimeError, match="SECRET_KEY must be set"):
+        create_app(
+            {
+                "SQLALCHEMY_DATABASE_URI": "postgresql://localhost/db",
+                "SECRET_KEY": None,
+            }
+        )

@@ -9,6 +9,13 @@ def create_app(config_override=None):
     app.config.from_object(Config)
     if config_override:
         app.config.update(config_override)
+
+    if not app.config.get("TESTING"):
+        if not app.config.get("SQLALCHEMY_DATABASE_URI"):
+            raise RuntimeError("DATABASE_URL must be set")
+        if not app.config.get("SECRET_KEY"):
+            raise RuntimeError("SECRET_KEY must be set")
+
     db.init_app(app)
     migrate.init_app(app, db)
 
