@@ -1,25 +1,25 @@
-from flask import current_app, jsonify
+from flask import Blueprint, current_app, jsonify
 from sqlalchemy import text
 
 from app.extensions import db
 
-from . import api_v1
+health_bp = Blueprint("health", __name__)
 
 
-@api_v1.route('/healthcheck', methods=['GET'])
-def healthcheck():
-    """Get API health status."""
-    current_app.logger.debug("Healthcheck requested")
+@health_bp.route("/health")
+def health():
+    """Platform-agnostic health check."""
+    current_app.logger.debug("Health check requested")
     return jsonify({"status": "healthy"}), 200
 
 
-@api_v1.route('/livez', methods=['GET'])
+@health_bp.route("/livez")
 def livez():
     """Liveness check — process is alive."""
     return jsonify({"status": "alive"}), 200
 
 
-@api_v1.route('/readyz', methods=['GET'])
+@health_bp.route("/readyz")
 def readyz():
     """Readiness check — database is reachable."""
     try:

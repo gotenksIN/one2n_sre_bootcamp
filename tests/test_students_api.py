@@ -37,7 +37,7 @@ def create_student(client, name="Alice", age=21):
 
 
 def test_healthcheck_returns_healthy_status(client):
-    response = client.get("/api/v1/healthcheck")
+    response = client.get("/health")
 
     assert response.status_code == 200
     assert response.get_json() == {"status": "healthy"}
@@ -174,14 +174,14 @@ def test_update_student_rejects_non_integer_age(client):
 
 
 def test_livez_returns_alive(client):
-    response = client.get("/api/v1/livez")
+    response = client.get("/livez")
 
     assert response.status_code == 200
     assert response.get_json() == {"status": "alive"}
 
 
 def test_readyz_returns_ready(client):
-    response = client.get("/api/v1/readyz")
+    response = client.get("/readyz")
 
     assert response.status_code == 200
     assert response.get_json() == {"status": "ready"}
@@ -193,7 +193,7 @@ def test_readyz_returns_503_when_db_down():
     )
     client = app.test_client()
 
-    response = client.get("/api/v1/readyz")
+    response = client.get("/readyz")
 
     assert response.status_code == 503
     assert response.get_json() == {"status": "not ready"}
@@ -215,7 +215,7 @@ def test_create_app_fails_without_secret_key():
 
 
 def test_response_includes_x_request_id(client):
-    response = client.get("/api/v1/healthcheck")
+    response = client.get("/health")
 
     assert response.status_code == 200
     assert "X-Request-ID" in response.headers
@@ -223,7 +223,7 @@ def test_response_includes_x_request_id(client):
 
 def test_x_request_id_is_echoed_when_provided(client):
     response = client.get(
-        "/api/v1/healthcheck", headers={"X-Request-ID": "test-id-123"}
+        "/health", headers={"X-Request-ID": "test-id-123"}
     )
 
     assert response.status_code == 200
