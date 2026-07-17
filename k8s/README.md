@@ -21,6 +21,17 @@ Vault runs in dev mode for this exercise.
 
 ## Setup
 
+### Create Cluster
+
+```bash
+make cluster
+```
+
+Three nodes are created: `minikube`, `minikube-m02`, `minikube-m03`.
+Label them for workload scheduling (see [Node Labels](#node-labels)).
+
+### Build And Load Image
+
 From the `k8s/` directory:
 
 ```bash
@@ -34,7 +45,7 @@ For kind:
 make image-load-kind
 ```
 
-Install dependencies and seed Vault:
+### Install Dependencies And Seed Vault
 
 ```bash
 make eso-install
@@ -87,8 +98,11 @@ kubectl describe externalsecret -n student-api student-api-secret
 
 ## Node Labels
 
+After creating the three-node cluster, label the nodes so workloads
+schedule correctly:
+
 ```bash
-kubectl label node <application-node> type=application --overwrite
-kubectl label node <database-node> type=database --overwrite
-kubectl label node <dependent-services-node> type=dependent_services --overwrite
+kubectl label node minikube type=application --overwrite
+kubectl label node minikube-m02 type=database --overwrite
+kubectl label node minikube-m03 type=dependent_services --overwrite
 ```

@@ -1,4 +1,4 @@
-.PHONY: build image-load-minikube image-load-kind eso-install vault bootstrap deploy wait status port-forward delete
+.PHONY: cluster build image-load-minikube image-load-kind eso-install vault bootstrap deploy wait status port-forward delete
 
 IMAGE_NAME := rest-api
 VERSION := $(shell grep -m 1 "version =" ../pyproject.toml | cut -d '"' -f 2)
@@ -13,6 +13,9 @@ ESO_MANIFEST := https://github.com/external-secrets/external-secrets/releases/do
 ESO_DEPLOYMENTS := external-secrets external-secrets-webhook external-secrets-cert-controller
 
 DEPENDENT_SERVICES_AFFINITY := '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"weight":100,"preference":{"matchExpressions":[{"key":"type","operator":"In","values":["dependent_services"]}]}}]}}}}}}'
+
+cluster:
+	minikube start --nodes 3
 
 build:
 	docker build -t $(IMAGE) ..
