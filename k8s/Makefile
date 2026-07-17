@@ -12,7 +12,7 @@ ESO_VERSION := v2.7.0
 ESO_MANIFEST := https://github.com/external-secrets/external-secrets/releases/download/$(ESO_VERSION)/external-secrets.yaml
 ESO_DEPLOYMENTS := external-secrets external-secrets-webhook external-secrets-cert-controller
 
-DEPENDENT_SERVICES_AFFINITY := '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"weight":100,"preference":{"matchExpressions":[{"key":"student-api/node-role","operator":"In","values":["dependent-services"]}]}}]}}}}}}'
+DEPENDENT_SERVICES_AFFINITY := '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"weight":100,"preference":{"matchExpressions":[{"key":"type","operator":"In","values":["dependent_services"]}]}}]}}}}}}'
 
 build:
 	docker build -t $(IMAGE) ..

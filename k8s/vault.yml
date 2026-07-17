@@ -47,10 +47,10 @@ spec:
             - weight: 100
               preference:
                 matchExpressions:
-                  - key: student-api/node-role
+                  - key: type
                     operator: In
                     values:
-                      - dependent-services
+                      - dependent_services
       containers:
         - name: vault
           image: hashicorp/vault:1.20

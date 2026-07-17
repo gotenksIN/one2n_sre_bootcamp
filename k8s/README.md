@@ -88,7 +88,7 @@ kubectl describe externalsecret -n student-api student-api-secret
 ## Node Labels
 
 ```bash
-kubectl label node <application-node> student-api/node-role=application --overwrite
-kubectl label node <database-node> student-api/node-role=database --overwrite
-kubectl label node <dependent-services-node> student-api/node-role=dependent-services --overwrite
+kubectl label node <application-node> type=application --overwrite
+kubectl label node <database-node> type=database --overwrite
+kubectl label node <dependent-services-node> type=dependent_services --overwrite
 ```

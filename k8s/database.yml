@@ -78,7 +78,7 @@ spec:
             - weight: 100
               preference:
                 matchExpressions:
-                  - key: student-api/node-role
+                  - key: type
                     operator: In
                     values:
                       - database
