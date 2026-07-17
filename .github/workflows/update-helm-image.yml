@@ -37,9 +37,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           IMAGE_TAG: ${{ steps.meta.outputs.tag }}
-          VALUES_PATH: >
-            repos/${GITHUB_REPOSITORY}
-            /contents/helm/stack/values.yaml?ref=master
+          VALUES_PATH: repos/${{ github.repository }}/contents/helm/stack/values.yaml?ref=master
         run: |
           current_tag=$(gh api "$VALUES_PATH" \
             --jq '.content' | base64 -d | grep '^  tag: ' | awk '{print $2}')
@@ -82,9 +80,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           IMAGE_TAG: ${{ steps.meta.outputs.tag }}
-          VALUES_PATH: >
-            repos/${GITHUB_REPOSITORY}
-            /contents/helm/stack/values.yaml?ref=master
+          VALUES_PATH: repos/${{ github.repository }}/contents/helm/stack/values.yaml?ref=master
         run: |
           if git diff --quiet -- helm/stack/values.yaml; then
             echo "Helm image tag is already ${IMAGE_TAG}"
