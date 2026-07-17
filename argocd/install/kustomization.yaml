@@ -14,11 +14,11 @@ patches:
       - op: add
         path: /spec/template/spec/nodeSelector
         value:
-          app/node-role: dependent-services
+          type: dependent_services
   - target:
       kind: StatefulSet
     patch: |-
       - op: add
         path: /spec/template/spec/nodeSelector
         value:
-          app/node-role: dependent-services
+          type: dependent_services

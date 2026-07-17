@@ -7,7 +7,7 @@ Installs ArgoCD and configures GitOps deployment for the Helm stack.
 - `kubectl`
 - Public GitHub repository
 - Self-hosted GitHub Actions runner
-- Nodes labeled with `app/node-role`
+- Nodes labeled with `type`
 
 ## Layout
 
@@ -27,7 +27,7 @@ kubectl rollout status statefulset/argocd-application-controller -n argocd --tim
 ArgoCD pods use this node selector:
 
 ```yaml
-app/node-role: dependent-services
+type: dependent_services
 ```
 
 ## Configure Application
