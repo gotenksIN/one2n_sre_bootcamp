@@ -45,6 +45,12 @@ For kind:
 make image-load-kind
 ```
 
+### Create Secrets File
+
+```bash
+cp .env.example .env
+```
+
 ### Install Dependencies And Seed Vault
 
 ```bash

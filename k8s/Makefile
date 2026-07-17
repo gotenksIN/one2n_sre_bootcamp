@@ -1,3 +1,6 @@
+-include .env
+export
+
 .PHONY: cluster build image-load-minikube image-load-kind eso-install vault bootstrap deploy wait status port-forward delete
 
 IMAGE_NAME := rest-api
@@ -51,6 +54,8 @@ vault:
 		--timeout=120s
 
 bootstrap:
+	@test -n "$$POSTGRES_PASSWORD" || (echo 'POSTGRES_PASSWORD is required' && exit 1)
+	@test -n "$$SECRET_KEY" || (echo 'SECRET_KEY is required' && exit 1)
 	kubectl exec \
 		-n $(VAULT_NS) \
 		deploy/vault \
@@ -59,8 +64,8 @@ bootstrap:
 			export VAULT_TOKEN=root; \
 			vault secrets enable -path=secret kv-v2 2>/dev/null || true; \
 			vault kv put secret/student-api \
-				postgres-password=change-me \
-				secret-key=change-me; \
+				postgres-password=$$POSTGRES_PASSWORD \
+				secret-key=$$SECRET_KEY; \
 			printf "%s\n" \
 				"path \"secret/data/student-api\" {" \
 				"  capabilities = [\"read\"]" \
