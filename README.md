@@ -39,6 +39,15 @@ with the implementation and replaces manual Postman collections.
 
 ## Development
 
+### Local (SQLite, no Docker)
+
+```bash
+make local-setup  # Install deps and set up SQLite database
+make local-run    # Start the dev server at http://127.0.0.1:5000
+```
+
+### Tests and Lint
+
 ```bash
 make test  # Run tests against Dockerized PostgreSQL
 make lint  # Run lint checks (ruff)

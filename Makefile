@@ -2,7 +2,7 @@ VERSION := $(shell grep -m 1 "version =" pyproject.toml | cut -d '"' -f 2)
 COMPOSE := VERSION=$(VERSION) docker compose
 TEST_COMPOSE := docker compose -p rest-test -f docker-compose.test.yml
 
-.PHONY: build db-up api-up ci-build run down clean logs migrate test lint ruffcheck openapi
+.PHONY: build db-up api-up ci-build local-setup local-run run down clean logs migrate test lint ruffcheck openapi
 
 openapi:
 	uv run python scripts/generate_openapi.py "$(VERSION)"
@@ -13,6 +13,13 @@ build:
 ci-build:
 	docker build -t $(IMAGE_REF):$(IMAGE_TAG) .
 	docker push $(IMAGE_REF):$(IMAGE_TAG)
+
+local-setup:
+	uv sync
+	DATABASE_URL=sqlite:///dev.db uv run flask --app app.main:app db upgrade
+
+local-run:
+	DATABASE_URL=sqlite:///dev.db uv run flask --app app.main:app run --host=0.0.0.0 --port=5000
 
 db-up:
 	$(COMPOSE) up -d postgres
