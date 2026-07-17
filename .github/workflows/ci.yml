@@ -30,6 +30,7 @@ jobs:
     runs-on: self-hosted
     if: github.actor != 'github-actions[bot]'
     permissions:
+      contents: read
       packages: write
     steps:
       - name: Checkout
