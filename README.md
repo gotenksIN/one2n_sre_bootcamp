@@ -24,7 +24,7 @@ A lightweight REST API for managing student records built with Flask, Flask-SQLA
 
 ## API Endpoints
 
-- `GET /health` — Health status
+- `GET /health` — Health status (also available at `/healthcheck`)
 - `GET /livez` — Liveness check
 - `GET /readyz` — Readiness check (DB reachable)
 - `GET /api/v1/students` — List all students
@@ -32,6 +32,10 @@ A lightweight REST API for managing student records built with Flask, Flask-SQLA
 - `GET /api/v1/students/<id>` — Retrieve a student
 - `PUT /api/v1/students/<id>` — Update a student
 - `DELETE /api/v1/students/<id>` — Delete a student
+
+API testing is done via the `openapi.json` spec — import it into Postman or any
+OpenAPI-compatible client. The spec is generated from code, so it stays in sync
+with the implementation and replaces manual Postman collections.
 
 ## Development
 
