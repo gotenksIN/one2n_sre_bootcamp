@@ -5,14 +5,14 @@ Installs ArgoCD and configures GitOps deployment for the Helm stack.
 ## Prerequisites
 
 - `kubectl`
-- Public GitHub repository
+- GitHub repository (public or private with a repository secret)
 - Self-hosted GitHub Actions runner
 - Nodes labeled with `type`
 
 ## Layout
 
 - `install/` - ArgoCD control plane in the `argocd` namespace
-- `apps/` - ArgoCD project and `stack` application
+- `apps/` - ArgoCD project, repository secret, and `stack` application
 
 ## Install
 
@@ -32,7 +32,23 @@ type: dependent_services
 
 ## Configure Application
 
-Make the repository public, then apply the app manifests:
+### Repository Secret
+
+If the repository is private, edit `argocd/apps/repo-secret.yaml` with
+a GitHub username and a personal access token (or deploy it from an
+external secrets manager):
+
+```yaml
+stringData:
+  username: <your-github-username>
+  password: <your-github-token-or-pat>
+```
+
+For public repositories this secret is not required, but it is included
+as a declarative manifest so the configuration path exists for private
+repos.
+
+### Apply Manifests
 
 ```bash
 kubectl apply -k argocd/apps
