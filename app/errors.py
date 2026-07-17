@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import current_app, jsonify
 from werkzeug.exceptions import HTTPException
 
 from .extensions import db
@@ -35,6 +35,7 @@ def handle_unexpected_error(error):
         )
         response.status_code = error.code
         return response
+    current_app.logger.exception("Unhandled exception: %s", error)
     db.session.rollback()
     return jsonify({"error": "Internal server error"}), 500
 
