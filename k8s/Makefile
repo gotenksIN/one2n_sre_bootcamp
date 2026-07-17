@@ -65,13 +65,16 @@ bootstrap:
 	kubectl exec \
 		-n $(VAULT_NS) \
 		deploy/vault \
-		-- sh -c ' \
+		-- env \
+		POSTGRES_PASSWORD="$$POSTGRES_PASSWORD" \
+		SECRET_KEY="$$SECRET_KEY" \
+		sh -c ' \
 			export VAULT_ADDR=http://127.0.0.1:8200; \
 			export VAULT_TOKEN=root; \
 			vault secrets enable -path=secret kv-v2 2>/dev/null || true; \
 			vault kv put secret/student-api \
-				postgres-password=$$POSTGRES_PASSWORD \
-				secret-key=$$SECRET_KEY; \
+				postgres-password="$$POSTGRES_PASSWORD" \
+				secret-key="$$SECRET_KEY"; \
 			printf "%s\n" \
 				"path \"secret/data/student-api\" {" \
 				"  capabilities = [\"read\"]" \
