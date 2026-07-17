@@ -1,10 +1,7 @@
 from flask import Flask
-from flask_migrate import Migrate
 
 from .config import Config
-from .models import db
-
-migrate = Migrate()
+from .extensions import db, migrate
 
 def create_app(config_override=None):
     app = Flask(__name__)

@@ -1,6 +1,7 @@
 from flask import jsonify, request
 
-from .models import Student, db
+from .extensions import db
+from .models import Student
 
 
 def init_routes(app):
