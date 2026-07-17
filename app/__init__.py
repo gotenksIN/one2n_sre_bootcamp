@@ -3,6 +3,7 @@ from flask import Flask
 from .config import Config
 from .extensions import db, migrate
 
+
 def create_app(config_override=None):
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -11,6 +12,7 @@ def create_app(config_override=None):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    from .routes import init_routes
-    init_routes(app)
+    from .api.v1 import api_v1
+
+    app.register_blueprint(api_v1)
     return app
