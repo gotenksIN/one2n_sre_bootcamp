@@ -91,22 +91,23 @@ def build_spec(version):
 
     health_status = _ref("HealthStatus")
 
-    spec.path(
-        path="/health",
-        operations={
-            "get": {
-                "summary": "Health check",
-                "description": "Returns the overall health status of the API.",
-                "tags": ["health"],
-                "responses": {
-                    "200": {
-                        "description": "API is healthy.",
-                        **_json(health_status),
+    for health_path in ("/health", "/healthcheck"):
+        spec.path(
+            path=health_path,
+            operations={
+                "get": {
+                    "summary": "Health check",
+                    "description": "Returns the overall health status of the API.",
+                    "tags": ["health"],
+                    "responses": {
+                        "200": {
+                            "description": "API is healthy.",
+                            **_json(health_status),
+                        },
                     },
                 },
             },
-        },
-    )
+        )
 
     spec.path(
         path="/livez",
