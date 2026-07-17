@@ -36,13 +36,29 @@ class TestCreateStudent:
 
 
 class TestListStudents:
-    def test_returns_students_from_repo(self, mock_repo):
+    def test_returns_paginated_students_from_repo(self, mock_repo):
         students = [MagicMock(), MagicMock()]
-        mock_repo.list_all.return_value = students
+        mock_repo.list_paginated.return_value = (students, 12)
+
+        result = list_students(limit=5, offset=10)
+
+        mock_repo.list_paginated.assert_called_once_with(5, 10)
+        assert result == {
+            "students": students,
+            "total": 12,
+            "limit": 5,
+            "offset": 10,
+        }
+
+    def test_uses_default_limit_and_offset(self, mock_repo):
+        students = []
+        mock_repo.list_paginated.return_value = (students, 0)
 
         result = list_students()
 
-        assert result is students
+        mock_repo.list_paginated.assert_called_once_with(20, 0)
+        assert result["total"] == 0
+        assert result["limit"] == 20
 
 
 class TestGetStudent:

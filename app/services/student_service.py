@@ -8,8 +8,18 @@ def create_student(data):
     return repo.create(validated["name"], validated["age"])
 
 
-def list_students():
-    return repo.list_all()
+DEFAULT_LIMIT = 20
+MAX_LIMIT = 100
+
+
+def list_students(limit=DEFAULT_LIMIT, offset=0):
+    students, total = repo.list_paginated(limit, offset)
+    return {
+        "students": students,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 def get_student(student_id):

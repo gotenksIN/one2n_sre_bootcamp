@@ -13,6 +13,14 @@ def list_all():
     return Student.query.all()
 
 
+def list_paginated(limit, offset):
+    total = Student.query.count()
+    students = (
+        Student.query.order_by(Student.id).limit(limit).offset(offset).all()
+    )
+    return students, total
+
+
 def get_by_id(student_id):
     return db.session.get(Student, student_id)
 

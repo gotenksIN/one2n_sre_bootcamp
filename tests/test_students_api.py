@@ -64,10 +64,58 @@ def test_list_students_returns_all_students(client):
     response = client.get("/api/v1/students")
 
     assert response.status_code == 200
-    assert response.get_json() == [
+    data = response.get_json()
+    assert data["students"] == [
         {"id": 1, "name": "Alice", "age": 21},
         {"id": 2, "name": "Bob", "age": 22},
     ]
+    assert data["total"] == 2
+    assert data["limit"] == 20
+    assert data["offset"] == 0
+
+
+def test_list_students_respects_limit(client):
+    for i in range(5):
+        create_student(client, name=f"Student{i}", age=20 + i)
+
+    response = client.get("/api/v1/students?limit=3")
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert len(data["students"]) == 3
+    assert data["total"] == 5
+    assert data["limit"] == 3
+
+
+def test_list_students_respects_offset(client):
+    for i in range(5):
+        create_student(client, name=f"Student{i}", age=20 + i)
+
+    response = client.get("/api/v1/students?offset=2&limit=2")
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["students"] == [
+        {"id": 3, "name": "Student2", "age": 22},
+        {"id": 4, "name": "Student3", "age": 23},
+    ]
+    assert data["total"] == 5
+
+
+def test_list_students_caps_max_limit(client):
+    response = client.get("/api/v1/students?limit=999")
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["limit"] == 100
+
+
+def test_list_students_rejects_negative_offset(client):
+    response = client.get("/api/v1/students?offset=-5")
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["offset"] == 0
 
 
 def test_get_student_returns_student_by_id(client):

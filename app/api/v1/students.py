@@ -14,9 +14,18 @@ def add_student():
 
 @api_v1.route('/students', methods=['GET'])
 def get_students():
-    """Retrieve all students."""
-    students = student_service.list_students()
-    return jsonify([s.to_dict() for s in students]), 200
+    """Retrieve students with pagination."""
+    limit = request.args.get("limit", 20, type=int)
+    offset = request.args.get("offset", 0, type=int)
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+    result = student_service.list_students(limit=limit, offset=offset)
+    return jsonify({
+        "students": [s.to_dict() for s in result["students"]],
+        "total": result["total"],
+        "limit": result["limit"],
+        "offset": result["offset"],
+    }), 200
 
 
 @api_v1.route('/students/<int:student_id>', methods=['GET'])
