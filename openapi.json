@@ -26,6 +26,27 @@
         }
       }
     },
+    "/healthcheck": {
+      "get": {
+        "summary": "Health check",
+        "description": "Returns the overall health status of the API.",
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "API is healthy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/livez": {
       "get": {
         "summary": "Liveness check",
@@ -80,21 +101,43 @@
     },
     "/api/v1/students": {
       "get": {
-        "summary": "List all students",
-        "description": "Retrieves all student records.",
+        "summary": "List students",
+        "description": "Retrieves student records with pagination.",
         "tags": [
           "students"
         ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Maximum number of students to return."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "description": "Number of students to skip before returning results."
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Array of student objects.",
+            "description": "Paginated student list.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Student"
-                  }
+                  "$ref": "#/components/schemas/StudentListResponse"
                 }
               }
             }
@@ -318,6 +361,39 @@
           "age": {
             "type": "integer",
             "example": 22
+          }
+        }
+      },
+      "StudentListResponse": {
+        "type": "object",
+        "required": [
+          "students",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "students": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Student"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 42
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
           }
         }
       },
