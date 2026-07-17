@@ -124,13 +124,13 @@ spec:
               memory: 512Mi
           readinessProbe:
             httpGet:
-              path: /api/v1/healthcheck
+              path: /readyz
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /api/v1/healthcheck
+              path: /livez
               port: http
             initialDelaySeconds: 20
             periodSeconds: 20

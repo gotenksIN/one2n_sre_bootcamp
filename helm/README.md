@@ -61,14 +61,14 @@ vaultBootstrap:
 ## Access API
 
 ```bash
-curl http://$(minikube ip):30080/api/v1/healthcheck
+curl http://$(minikube ip):30080/health
 ```
 
 Or use port forwarding:
 
 ```bash
 make port-forward
-curl http://127.0.0.1:5000/api/v1/healthcheck
+curl http://127.0.0.1:5000/health
 ```
 
 Expected response:

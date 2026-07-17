@@ -24,7 +24,9 @@ A lightweight REST API for managing student records built with Flask, Flask-SQLA
 
 ## API Endpoints
 
-- `GET /api/v1/healthcheck` — Health status
+- `GET /health` — Health status
+- `GET /livez` — Liveness check
+- `GET /readyz` — Readiness check (DB reachable)
 - `GET /api/v1/students` — List all students
 - `POST /api/v1/students` — Create a student
 - `GET /api/v1/students/<id>` — Retrieve a student

@@ -41,7 +41,7 @@ make clean  # Remove containers and volumes
 ## Verify
 
 ```bash
-curl http://127.0.0.1:8080/api/v1/healthcheck
+curl http://127.0.0.1:8080/health
 ```
 
 Expected response:

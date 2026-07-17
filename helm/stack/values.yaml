@@ -58,19 +58,19 @@ waitForPostgresResources:
     memory: 64Mi
 startupProbe:
   enabled: true
-  path: /api/v1/healthcheck
+  path: /health
   initialDelaySeconds: 0
   periodSeconds: 5
   timeoutSeconds: 5
   failureThreshold: 24
 readinessProbe:
-  path: /api/v1/healthcheck
+  path: /readyz
   initialDelaySeconds: 5
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
 livenessProbe:
-  path: /api/v1/healthcheck
+  path: /livez
   initialDelaySeconds: 20
   periodSeconds: 20
   timeoutSeconds: 5
