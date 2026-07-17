@@ -1,0 +1,67 @@
+name: Update OpenAPI Spec
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'app/health.py'
+      - 'app/api/v1/students.py'
+      - 'scripts/generate_openapi.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-openapi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update-openapi:
+    name: Regenerate openapi.json
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install Python
+        run: uv python install 3.14
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Regenerate OpenAPI spec
+        run: make openapi
+
+      - name: Commit updated openapi.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add openapi.json
+          if git diff --cached --quiet; then
+            echo "No changes to openapi.json"
+            exit 0
+          fi
+
+          file_sha=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/contents/openapi.json?ref=master" \
+            --jq .sha)
+          content=$(base64 < openapi.json | tr -d '\n')
+
+          gh api \
+            --method PUT \
+            "repos/${GITHUB_REPOSITORY}/contents/openapi.json" \
+            -f branch=master \
+            -f message="chore: regenerate openapi.json" \
+            -f content="${content}" \
+            -f sha="${file_sha}"
