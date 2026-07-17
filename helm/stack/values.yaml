@@ -114,6 +114,11 @@ vaultBootstrap:
     limits:
       cpu: 250m
       memory: 256Mi
+# WARNING: Vault is configured in dev mode for local/demo clusters.
+#   vault.server.dev.enabled: true   - Do not use in production
+#   vault.server.dev.devRootToken    - Do not use in production
+# For production, disable dev mode and configure proper HA Vault
+# with auto-unseal, TLS, and a secure root token stored externally.
 vault:
   enabled: true
   global:
