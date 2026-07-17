@@ -15,7 +15,7 @@ services:
 
   migrate:
     build: .
-    image: rest-api:${VERSION:-latest}
+    image: rest-api:${VERSION}
     command: flask db upgrade
     depends_on:
       postgres:
@@ -25,7 +25,7 @@ services:
 
   rest-api:
     build: .
-    image: rest-api:${VERSION:-latest}
+    image: rest-api:${VERSION}
     ports:
       - "5000:5000"
     depends_on:
