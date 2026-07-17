@@ -1,4 +1,7 @@
 {{- if .Values.vaultBootstrap.enabled }}
+{{- required "vaultBootstrap.rootToken is required when vaultBootstrap is enabled" .Values.vaultBootstrap.rootToken -}}
+{{- required "vaultBootstrap.postgresPassword is required when vaultBootstrap is enabled" .Values.vaultBootstrap.postgresPassword -}}
+{{- required "vaultBootstrap.flaskSecretKey is required when vaultBootstrap is enabled" .Values.vaultBootstrap.flaskSecretKey -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
