@@ -10,6 +10,11 @@ class TestValidateCreateStudent:
 
         assert result == {"name": "Alice", "age": 21}
 
+    def test_whitespace_name_is_trimmed(self):
+        result = validate_create_student({"name": "  Bob  ", "age": 30})
+
+        assert result == {"name": "Bob", "age": 30}
+
     def test_missing_name_raises_validation_error(self):
         with pytest.raises(ValidationError, match="Name and age are required"):
             validate_create_student({"age": 21})
@@ -38,10 +43,23 @@ class TestValidateCreateStudent:
         with pytest.raises(ValidationError, match="Age must be an integer"):
             validate_create_student({"name": "Alice", "age": True})
 
+    def test_age_below_min_raises_validation_error(self):
+        with pytest.raises(ValidationError, match="Age must be between 1 and 150"):
+            validate_create_student({"name": "Alice", "age": 0})
+
+    def test_age_above_max_raises_validation_error(self):
+        with pytest.raises(ValidationError, match="Age must be between 1 and 150"):
+            validate_create_student({"name": "Alice", "age": 151})
+
 
 class TestValidateUpdateStudent:
     def test_valid_name_returns_validated_dict(self):
         result = validate_update_student({"name": "Bob"})
+
+        assert result == {"name": "Bob"}
+
+    def test_whitespace_name_is_trimmed(self):
+        result = validate_update_student({"name": " \tBob\n "})
 
         assert result == {"name": "Bob"}
 
@@ -78,3 +96,11 @@ class TestValidateUpdateStudent:
     def test_boolean_age_raises_validation_error(self):
         with pytest.raises(ValidationError, match="Age must be an integer"):
             validate_update_student({"age": False})
+
+    def test_age_below_min_raises_validation_error(self):
+        with pytest.raises(ValidationError, match="Age must be between 1 and 150"):
+            validate_update_student({"age": -5})
+
+    def test_age_above_max_raises_validation_error(self):
+        with pytest.raises(ValidationError, match="Age must be between 1 and 150"):
+            validate_update_student({"age": 999})
