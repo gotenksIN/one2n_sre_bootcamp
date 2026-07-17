@@ -4,6 +4,18 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'app/**'
+      - 'tests/**'
+      - 'migrations/**'
+      - 'Dockerfile'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'docker-compose.yml'
+      - 'docker-compose.test.yml'
+      - 'Makefile'
+      - '.github/workflows/argocd-image-update.yml'
+      - 'helm/stack/values.yaml'
   workflow_dispatch:
 
 permissions:
