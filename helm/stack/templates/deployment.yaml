@@ -38,10 +38,9 @@ spec:
       {{- if .Values.nodeAffinity.enabled }}
       affinity:
         nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
                   - key: {{ .Values.nodeAffinity.key }}
                     operator: In
                     values:

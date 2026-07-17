@@ -129,10 +129,9 @@ vault:
     dev:
       enabled: true
       devRootToken: root
-    affinity: "nodeAffinity:\n  preferredDuringSchedulingIgnoredDuringExecution:\n\
-      \    - weight: 100\n      preference:\n        matchExpressions:\n         \
-      \ - key: type\n            operator: In\n            values:\n    \
-      \          - dependent_services\n"
+    affinity: "nodeAffinity:\n  requiredDuringSchedulingIgnoredDuringExecution:\n\
+      \      nodeSelectorTerms:\n        - matchExpressions:\n          - key: type\n\
+      \            operator: In\n            values:\n              - dependent_services\n"
     resources:
       requests:
         cpu: 100m
