@@ -62,7 +62,7 @@ Open `https://127.0.0.1:8080`.
 ```bash
 kubectl get pods -n argocd -o wide
 kubectl get applications -n argocd
-kubectl get pods -n app
+kubectl get pods -n student-api
 ```
 
 ## CI Flow
