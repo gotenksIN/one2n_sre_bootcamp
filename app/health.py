@@ -7,6 +7,7 @@ health_bp = Blueprint("health", __name__)
 
 
 @health_bp.route("/health")
+@health_bp.route("/healthcheck")
 def health():
     """Platform-agnostic health check."""
     current_app.logger.debug("Health check requested")
