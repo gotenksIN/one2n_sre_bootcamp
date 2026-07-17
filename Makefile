@@ -2,7 +2,10 @@ VERSION := $(shell grep -m 1 "version =" pyproject.toml | cut -d '"' -f 2)
 COMPOSE := VERSION=$(VERSION) docker compose
 TEST_COMPOSE := docker compose -p rest-test -f docker-compose.test.yml
 
-.PHONY: run down clean logs migrate test lint ruffcheck
+.PHONY: run down clean logs migrate test lint ruffcheck openapi
+
+openapi:
+	uv run python scripts/generate_openapi.py "$(VERSION)"
 
 run:
 	$(COMPOSE) up --build -d
