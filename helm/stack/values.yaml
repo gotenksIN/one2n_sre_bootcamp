@@ -4,7 +4,7 @@ replicaCount: 1
 revisionHistoryLimit: 3
 image:
   repository: ghcr.io/gotenksin/rest-api
-  tag: 9ec9797d8237
+  tag: e1673ad0de73
   pullPolicy: Always
 imagePullSecrets: []
 service:
