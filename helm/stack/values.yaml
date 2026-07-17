@@ -4,7 +4,7 @@ replicaCount: 1
 revisionHistoryLimit: 3
 image:
   repository: ghcr.io/gotenksin/rest-api
-  tag: eb62c8f3a70e
+  tag: 9ec9797d8237
   pullPolicy: Always
 imagePullSecrets: []
 service:
@@ -96,11 +96,11 @@ vaultBootstrap:
     pullPolicy: IfNotPresent
   serviceAccountName: vault-bootstrap
   vaultAddress: http://stack-vault.vault.svc.cluster.local:8200
-  rootToken: ""
+  rootToken: ''
   secretPath: secret
   secretSubPath: app
-  postgresPassword: ""
-  flaskSecretKey: ""
+  postgresPassword: ''
+  flaskSecretKey: ''
   policyName: app
   kubernetesRole: app
   apiServiceAccount: stack
@@ -114,11 +114,6 @@ vaultBootstrap:
     limits:
       cpu: 250m
       memory: 256Mi
-# WARNING: Vault is configured in dev mode for local/demo clusters.
-#   vault.server.dev.enabled: true   - Do not use in production
-#   vault.server.dev.devRootToken    - Do not use in production
-# For production, disable dev mode and configure proper HA Vault
-# with auto-unseal, TLS, and a secure root token stored externally.
 vault:
   enabled: true
   global:
