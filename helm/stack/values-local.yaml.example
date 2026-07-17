@@ -1,0 +1,12 @@
+# Local dev overrides for Helm. Copy and edit before deploying.
+#
+#   cp values-local.yaml.example values-local.yaml
+#   vim values-local.yaml
+#   make install  # reads values-local.yaml automatically
+#
+# Do not commit values-local.yaml.
+
+vaultBootstrap:
+  rootToken: root
+  postgresPassword: change-me
+  flaskSecretKey: change-me

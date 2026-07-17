@@ -7,6 +7,7 @@ RELEASE := stack
 NAMESPACE := student-api
 CHART := stack
 SET_IMAGE := --set image.repository=$(IMAGE_NAME) --set image.tag=$(APP_VERSION)
+LOCAL_VALUES := $(shell test -f $(CHART)/values-local.yaml && echo "--values $(CHART)/values-local.yaml" || true)
 
 .PHONY: repo-update deps build image-load-minikube image-load-kind lint template install wait status port-forward uninstall
 
@@ -31,13 +32,14 @@ lint:
 	helm lint $(CHART)
 
 template:
-	helm template $(RELEASE) $(CHART) --namespace $(NAMESPACE) $(SET_IMAGE)
+	helm template $(RELEASE) $(CHART) --namespace $(NAMESPACE) $(SET_IMAGE) $(LOCAL_VALUES)
 
 install:
 	helm upgrade --install $(RELEASE) $(CHART) \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
-		$(SET_IMAGE)
+		$(SET_IMAGE) \
+		$(LOCAL_VALUES)
 	kubectl rollout status deployment/$(RELEASE)-vault-agent-injector -n vault --timeout=180s
 	kubectl rollout restart deployment/$(RELEASE) -n $(NAMESPACE)
 

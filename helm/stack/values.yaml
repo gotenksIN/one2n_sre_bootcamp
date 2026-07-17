@@ -96,11 +96,11 @@ vaultBootstrap:
     pullPolicy: IfNotPresent
   serviceAccountName: vault-bootstrap
   vaultAddress: http://stack-vault.vault.svc.cluster.local:8200
-  rootToken: root
+  rootToken: ""
   secretPath: secret
   secretSubPath: app
-  postgresPassword: change-me
-  flaskSecretKey: change-me
+  postgresPassword: ""
+  flaskSecretKey: ""
   policyName: app
   kubernetesRole: app
   apiServiceAccount: stack

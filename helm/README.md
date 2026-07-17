@@ -50,13 +50,20 @@ Namespaces:
 - `student-api` - API and PostgreSQL
 - `vault` - Vault and Vault Agent injector
 
-Default local secrets are in `stack/values.yaml`:
+## Local Secrets
 
-```yaml
-vaultBootstrap:
-  postgresPassword: change-me
-  flaskSecretKey: change-me
+The committed `values.yaml` sets sensitive fields to empty values. Provide
+them via a local values file before deploying:
+
+```bash
+cp stack/values-local.yaml.example stack/values-local.yaml
+# edit stack/values-local.yaml with your dev secrets
 ```
+
+The Makefile automatically includes `values-local.yaml` when it exists.
+
+For production use, External Secrets Operator or Vault should supply runtime
+secrets rather than static values files.
 
 ## Access API
 
