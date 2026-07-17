@@ -21,7 +21,15 @@ class JSONFormatter(logging.Formatter):
             except RuntimeError:
                 pass
 
-        for key in ("method", "path", "status_code"):
+        for key in (
+            "method",
+            "path",
+            "status_code",
+            "duration",
+            "remote_addr",
+            "user_agent",
+            "route",
+        ):
             value = getattr(record, key, None)
             if value is not None:
                 log_entry[key] = value
@@ -55,6 +63,10 @@ def setup_logging(app):
                 "method": request.method,
                 "path": request.path,
                 "status_code": str(response.status_code),
+                "duration": f"{duration:.4f}",
+                "remote_addr": request.remote_addr,
+                "user_agent": request.headers.get("User-Agent", "-"),
+                "route": request.endpoint,
             },
         )
         response.headers["X-Request-ID"] = g.pop("request_id", "")
