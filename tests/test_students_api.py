@@ -283,3 +283,13 @@ def test_x_request_id_present_on_error_responses(client):
 
     assert response.status_code == 404
     assert "X-Request-ID" in response.headers
+
+
+def test_metrics_endpoint_returns_prometheus_metrics(client):
+    client.get("/health")
+
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    assert b"flask_http_request_total" in response.data
+    assert b"flask_http_request_duration_seconds_bucket" in response.data

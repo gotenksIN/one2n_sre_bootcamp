@@ -1,0 +1,15 @@
+{{- range $path, $_ := .Files.Glob "dashboards/*.json" }}
+{{- $name := regexReplaceAll "[^a-zA-Z0-9-]" (base $path | trimSuffix ".json") "-" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "observability.fullname" $ }}-dashboard-{{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "observability.labels" $ | nindent 4 }}
+    grafana_dashboard: "1"
+data:
+  {{ base $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}

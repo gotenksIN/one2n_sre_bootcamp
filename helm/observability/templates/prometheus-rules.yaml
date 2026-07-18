@@ -1,0 +1,192 @@
+{{- if .Values.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "observability.fullname" . }}-rules
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "observability.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: infrastructure
+      rules:
+        - alert: HighNodeCPUUsage
+          expr: |
+            100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])))
+            > {{ .Values.alerts.thresholds.nodeCpuPercent }}
+          for: 5m
+          labels:
+            severity: warning
+            category: use
+          annotations:
+            summary: High node CPU usage
+            description: >-
+              Node {{ `{{ $labels.instance }}` }} CPU utilization is
+              {{ `{{ $value | printf "%.1f" }}` }}%,
+              above {{ .Values.alerts.thresholds.nodeCpuPercent }}% for 5 minutes.
+        - alert: HighNodeDiskUsage
+          expr: |
+            100 * (
+              1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint!~"/run.*"}
+              / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint!~"/run.*"}
+            )
+            > {{ .Values.alerts.thresholds.nodeDiskPercent }}
+          for: 10m
+          labels:
+            severity: warning
+            category: use
+          annotations:
+            summary: High node disk usage
+            description: >-
+              Node {{ `{{ $labels.instance }}` }} disk usage on
+              {{ `{{ $labels.device }}` }} ({{ `{{ $labels.mountpoint }}` }})
+              is {{ `{{ $value | printf "%.1f" }}` }}%,
+              above {{ .Values.alerts.thresholds.nodeDiskPercent }}%.
+    - name: api-red
+      rules:
+        - alert: HighAPIErrorRate
+          expr: |
+            100 *
+            sum(rate(flask_http_request_total{status=~"5.."}[{{ .Values.alerts.evaluationWindow }}]))
+            /
+            clamp_min(sum(rate(flask_http_request_total[{{ .Values.alerts.evaluationWindow }}])), 0.001)
+            > {{ .Values.alerts.thresholds.apiErrorPercent }}
+            and
+            sum(rate(flask_http_request_total[{{ .Values.alerts.evaluationWindow }}]))
+            > {{ .Values.alerts.thresholds.apiMinimumRequestRatePerSecond }}
+          for: 2m
+          labels:
+            severity: critical
+            category: red
+          annotations:
+            summary: High API error rate
+            description: >-
+              API server error rate is
+              {{ `{{ $value | printf "%.1f" }}` }}% over
+              {{ .Values.alerts.evaluationWindow }},
+              above {{ .Values.alerts.thresholds.apiErrorPercent }}%.
+        - alert: HighAPIP90Latency
+          expr: |
+            histogram_quantile(
+              0.90,
+              sum by (le) (rate(flask_http_request_duration_seconds_bucket[{{ .Values.alerts.evaluationWindow }}]))
+            ) > {{ .Values.alerts.thresholds.apiP90LatencySeconds }}
+          for: 5m
+          labels:
+            severity: warning
+            category: red
+          annotations:
+            summary: High API p90 latency
+            description: >-
+              API p90 latency is
+              {{ `{{ $value | printf "%.3f" }}` }}s over
+              {{ .Values.alerts.evaluationWindow }},
+              above {{ .Values.alerts.thresholds.apiP90LatencySeconds }}s.
+        - alert: HighAPIP95Latency
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum by (le) (rate(flask_http_request_duration_seconds_bucket[{{ .Values.alerts.evaluationWindow }}]))
+            ) > {{ .Values.alerts.thresholds.apiP95LatencySeconds }}
+          for: 5m
+          labels:
+            severity: warning
+            category: red
+          annotations:
+            summary: High API p95 latency
+            description: >-
+              API p95 latency is
+              {{ `{{ $value | printf "%.3f" }}` }}s over
+              {{ .Values.alerts.evaluationWindow }},
+              above {{ .Values.alerts.thresholds.apiP95LatencySeconds }}s.
+        - alert: HighAPIP99Latency
+          expr: |
+            histogram_quantile(
+              0.99,
+              sum by (le) (rate(flask_http_request_duration_seconds_bucket[{{ .Values.alerts.evaluationWindow }}]))
+            ) > {{ .Values.alerts.thresholds.apiP99LatencySeconds }}
+          for: 5m
+          labels:
+            severity: critical
+            category: red
+          annotations:
+            summary: High API p99 latency
+            description: >-
+              API p99 latency is
+              {{ `{{ $value | printf "%.3f" }}` }}s over
+              {{ .Values.alerts.evaluationWindow }},
+              above {{ .Values.alerts.thresholds.apiP99LatencySeconds }}s.
+        - alert: HighAPIRequestRate
+          expr: |
+            sum(rate(flask_http_request_total[5m]))
+            > {{ .Values.alerts.thresholds.apiRequestRatePerSecond }}
+          for: 5m
+          labels:
+            severity: warning
+            category: red
+          annotations:
+            summary: High API request rate
+            description: >-
+              API request rate is
+              {{ `{{ $value | printf "%.1f" }}` }} req/s,
+              above {{ .Values.alerts.thresholds.apiRequestRatePerSecond }} req/s.
+    - name: component-restarts
+      rules:
+        - alert: PostgreSQLRestarted
+          expr: |
+            sum by (namespace, pod, container) (
+              increase(kube_pod_container_status_restarts_total{
+                namespace="student-api",
+                pod=~"stack-postgresql-.*",
+                container="postgresql"
+              }[10m])
+            ) > 0
+          for: 0m
+          labels:
+            severity: critical
+            category: restart
+          annotations:
+            summary: PostgreSQL container restarted
+            description: >-
+              Container {{ `{{ $labels.container }}` }} in pod
+              {{ `{{ $labels.pod }}` }} restarted
+              {{ `{{ $value }}` }} time(s) in the last 10 minutes.
+        - alert: VaultServerRestarted
+          expr: |
+            sum by (namespace, pod, container) (
+              increase(kube_pod_container_status_restarts_total{
+                namespace="vault",
+                pod=~"vault-.*",
+                container="vault"
+              }[10m])
+            ) > 0
+          for: 0m
+          labels:
+            severity: critical
+            category: restart
+          annotations:
+            summary: Vault server container restarted
+            description: >-
+              Container {{ `{{ $labels.container }}` }} in pod
+              {{ `{{ $labels.pod }}` }} restarted
+              {{ `{{ $value }}` }} time(s) in the last 10 minutes.
+        - alert: ArgoCDServerRestarted
+          expr: |
+            sum by (namespace, pod, container) (
+              increase(kube_pod_container_status_restarts_total{
+                namespace="argocd",
+                pod=~"argocd-server-.*",
+                container="argocd-server"
+              }[10m])
+            ) > 0
+          for: 0m
+          labels:
+            severity: warning
+            category: restart
+          annotations:
+            summary: ArgoCD server container restarted
+            description: >-
+              Container {{ `{{ $labels.container }}` }} in pod
+              {{ `{{ $labels.pod }}` }} restarted
+              {{ `{{ $value }}` }} time(s) in the last 10 minutes.
+{{- end }}

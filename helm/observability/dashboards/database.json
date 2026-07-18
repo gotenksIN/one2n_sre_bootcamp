@@ -1,0 +1,201 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "id": null,
+  "panels": [
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"] }
+      },
+      "title": "PostgreSQL Up",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "max(pg_up)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "bytes"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"] }
+      },
+      "title": "Database Size",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "pg_database_size_bytes{datname=\"app\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 3,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "title": "Active Connections",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(pg_stat_database_numbackends{datname=\"app\"})",
+          "legendFormat": "Active connections",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "id": 4,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "title": "Transactions per Second",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(pg_stat_database_xact_commit{datname=\"app\"}[5m]))",
+          "legendFormat": "Commits",
+          "refId": "A"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(pg_stat_database_xact_rollback{datname=\"app\"}[5m]))",
+          "legendFormat": "Rollbacks",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "id": 5,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "title": "Rows Changed per Second",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(pg_stat_database_tup_inserted{datname=\"app\"}[5m]))",
+          "legendFormat": "Inserted",
+          "refId": "A"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(pg_stat_database_tup_updated{datname=\"app\"}[5m]))",
+          "legendFormat": "Updated",
+          "refId": "B"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(pg_stat_database_tup_deleted{datname=\"app\"}[5m]))",
+          "legendFormat": "Deleted",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 28 },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"] }
+      },
+      "title": "Deadlocks",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(increase(pg_stat_database_deadlocks{datname=\"app\"}[$__range]))",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["student-api", "milestone-11"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "Student API - Database",
+  "uid": "student-api-database",
+  "version": 1
+}

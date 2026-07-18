@@ -1,0 +1,9 @@
+# Copy this file to values-local.yaml and fill in real values.
+# Never commit values-local.yaml.
+rootToken: root
+bootstrap:
+  postgresPassword: <real-postgres-password>
+  flaskSecretKey: <real-flask-secret-key>
+  observability:
+    grafanaAdminPassword: <real-grafana-admin-password>
+    postgresExporterPassword: <real-postgres-exporter-password>

@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "observability.fullname" . }}-application
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "observability.labels" . | nindent 4 }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.applicationMetrics.namespace }}
+  selector:
+    matchLabels:
+      {{- range $key, $value := .Values.applicationMetrics.serviceLabels }}
+      {{ $key }}: {{ $value }}
+      {{- end }}
+  endpoints:
+    - port: {{ .Values.applicationMetrics.port }}
+      path: {{ .Values.applicationMetrics.path }}
+      interval: {{ .Values.applicationMetrics.interval }}
+      scrapeTimeout: {{ .Values.applicationMetrics.scrapeTimeout }}

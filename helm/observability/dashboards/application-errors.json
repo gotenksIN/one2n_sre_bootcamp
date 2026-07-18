@@ -1,0 +1,168 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "id": null,
+  "panels": [
+    {
+      "datasource": { "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"] }
+      },
+      "title": "HTTP Errors (last 10m)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "uid": "loki" },
+          "expr": "sum(count_over_time({namespace=\"student-api\", container=\"stack\"} | json | status_code=~\"4..|5..\" [10m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 2,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "title": "5xx Errors Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "loki" },
+          "expr": "sum(count_over_time({namespace=\"student-api\", container=\"stack\"} | json | status_code=~\"5..\" [$__auto]))",
+          "legendFormat": "5xx errors",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "id": 3,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "title": "4xx Errors Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "loki" },
+          "expr": "sum(count_over_time({namespace=\"student-api\", container=\"stack\"} | json | status_code=~\"4..\" [$__auto]))",
+          "legendFormat": "4xx errors",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "id": 4,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "title": "Errors by Path",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "loki" },
+          "expr": "topk(10, sum by (path) (count_over_time({namespace=\"student-api\", container=\"stack\"} | json | status_code=~\"4..|5..\" [$__auto])))",
+          "legendFormat": "{{path}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "id": 5,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "title": "Errors by Status Code",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "loki" },
+          "expr": "sum by (status_code) (count_over_time({namespace=\"student-api\", container=\"stack\"} | json | status_code=~\"4..|5..\" [$__auto]))",
+          "legendFormat": "{{status_code}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "loki" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 36 },
+      "id": 6,
+      "options": {
+        "showTime": true,
+        "sortOrder": "Descending"
+      },
+      "title": "Error Log Details",
+      "type": "logs",
+      "targets": [
+        {
+          "datasource": { "uid": "loki" },
+          "expr": "{namespace=\"student-api\", container=\"stack\"} | json | status_code=~\"4..|5..\"",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["student-api", "milestone-11"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "Student API - Application Errors",
+  "uid": "student-api-application-errors",
+  "version": 1
+}

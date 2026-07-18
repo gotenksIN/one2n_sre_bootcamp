@@ -21,6 +21,7 @@ bootstrap:
     grafanaAdminUser: admin
     grafanaAdminPassword: ''
     postgresExporterPassword: ''
+    dummySlackWebhookUrl: https://example.invalid/slack-webhook
 nodeSelector:
   type: dependent_services
 resources:

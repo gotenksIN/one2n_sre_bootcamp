@@ -1,7 +1,7 @@
 from flask import Flask
 
 from .config import Config
-from .extensions import db, migrate
+from .extensions import db, metrics, migrate
 
 
 def create_app(config_override=None):
@@ -18,6 +18,7 @@ def create_app(config_override=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    metrics.init_app(app)
 
     from .api.v1 import api_v1
     from .errors import register_error_handlers

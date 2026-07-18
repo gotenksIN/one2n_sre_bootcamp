@@ -14,6 +14,8 @@ on:
       - 'docker-compose.yml'
       - 'docker-compose.test.yml'
       - 'Makefile'
+      - 'helm/**'
+      - 'argocd/**'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
@@ -49,6 +51,16 @@ jobs:
         run: |
           cp .env.test.example .env.test
           make test
+
+      - name: Validate Helm charts and dashboards
+        run: |
+          make -C helm repo-update
+          make -C helm deps
+          make -C helm lint
+          make -C helm template >/dev/null
+          for dashboard in helm/observability/dashboards/*.json; do
+            jq empty "$dashboard"
+          done
 
       - name: Set image tag
         id: meta

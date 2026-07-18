@@ -14,8 +14,11 @@ OBSERVABILITY_NAMESPACE := observability
 
 STACK_VALUES := --values stack/values.yaml --values stack/values-image.yaml
 LOCAL_IMAGE := --set image.repository=$(IMAGE_NAME) --set image.tag=$(APP_VERSION) --set image.pullPolicy=IfNotPresent
+VAULT_VALUES ?= vault/values-demo.yaml
+VAULT_TOKEN ?= root
+SLACK_WEBHOOK_FILE ?= vault/slack-webhook.local
 
-.PHONY: repo-update deps build image-load-minikube image-load-kind lint template install wait status port-forward port-forward-grafana port-forward-prometheus uninstall
+.PHONY: repo-update deps build image-load-minikube image-load-kind lint template install set-slack-webhook wait status port-forward port-forward-grafana port-forward-prometheus port-forward-alertmanager uninstall
 
 repo-update:
 	helm repo add external-secrets https://charts.external-secrets.io --force-update
@@ -39,13 +42,13 @@ image-load-kind:
 
 lint:
 	helm lint external-secrets
-	helm lint vault --values vault/values-demo.yaml
+	helm lint vault --values $(VAULT_VALUES)
 	helm lint stack $(STACK_VALUES)
 	helm lint observability
 
 template:
 	helm template $(ESO_RELEASE) external-secrets --namespace $(ESO_NAMESPACE)
-	helm template $(VAULT_RELEASE) vault --namespace $(VAULT_NAMESPACE) --values vault/values-demo.yaml
+	helm template $(VAULT_RELEASE) vault --namespace $(VAULT_NAMESPACE) --values $(VAULT_VALUES)
 	helm template $(STACK_RELEASE) stack --namespace $(STACK_NAMESPACE) $(STACK_VALUES) $(LOCAL_IMAGE)
 	helm template $(OBSERVABILITY_RELEASE) observability --namespace $(OBSERVABILITY_NAMESPACE) --include-crds
 
@@ -59,7 +62,7 @@ install:
 	helm upgrade --install $(VAULT_RELEASE) vault \
 		--namespace $(VAULT_NAMESPACE) \
 		--create-namespace \
-		--values vault/values-demo.yaml \
+		--values $(VAULT_VALUES) \
 		--rollback-on-failure \
 		--wait \
 		--wait-for-jobs \
@@ -80,6 +83,14 @@ install:
 		--wait-for-jobs \
 		--timeout $(TIMEOUT)
 
+set-slack-webhook:
+	@test -s "$(SLACK_WEBHOOK_FILE)" || (printf '%s\n' "Missing $(SLACK_WEBHOOK_FILE). Copy vault/slack-webhook.local.example and add the real webhook." && exit 1)
+	@kubectl exec -i -n $(VAULT_NAMESPACE) deployment/$(VAULT_RELEASE) -- \
+		env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN="$(VAULT_TOKEN)" \
+		vault kv patch secret/observability slackWebhookUrl=- < "$(SLACK_WEBHOOK_FILE)"
+	kubectl annotate externalsecret $(OBSERVABILITY_RELEASE)-alertmanager-slack \
+		-n $(OBSERVABILITY_NAMESPACE) force-sync="$$(date +%s)" --overwrite
+
 wait:
 	kubectl wait --for=condition=Available deployment --all -n $(ESO_NAMESPACE) --timeout=$(TIMEOUT)
 	kubectl wait --for=condition=Available deployment/$(VAULT_RELEASE) -n $(VAULT_NAMESPACE) --timeout=$(TIMEOUT)
@@ -93,6 +104,7 @@ wait:
 	kubectl wait --for=condition=Available deployment --all -n $(OBSERVABILITY_NAMESPACE) --timeout=$(TIMEOUT)
 	kubectl rollout status statefulset/$(OBSERVABILITY_RELEASE)-loki -n $(OBSERVABILITY_NAMESPACE) --timeout=$(TIMEOUT)
 	kubectl wait --for=condition=Available prometheus/$(OBSERVABILITY_RELEASE)-kube-prometh-prometheus -n $(OBSERVABILITY_NAMESPACE) --timeout=$(TIMEOUT)
+	kubectl wait --for=condition=Available alertmanager/$(OBSERVABILITY_RELEASE)-kube-prometh-alertmanager -n $(OBSERVABILITY_NAMESPACE) --timeout=$(TIMEOUT)
 
 status:
 	helm list --all-namespaces
@@ -110,6 +122,9 @@ port-forward-grafana:
 
 port-forward-prometheus:
 	kubectl port-forward -n $(OBSERVABILITY_NAMESPACE) svc/$(OBSERVABILITY_RELEASE)-kube-prometh-prometheus 9090:9090
+
+port-forward-alertmanager:
+	kubectl port-forward -n $(OBSERVABILITY_NAMESPACE) svc/$(OBSERVABILITY_RELEASE)-kube-prometh-alertmanager 9093:9093
 
 uninstall:
 	helm uninstall $(OBSERVABILITY_RELEASE) -n $(OBSERVABILITY_NAMESPACE) --ignore-not-found

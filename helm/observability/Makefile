@@ -2,7 +2,7 @@ RELEASE := observability
 NAMESPACE := observability
 CHART := .
 
-.PHONY: deps deps-update lint template install wait status port-forward-grafana port-forward-prometheus uninstall
+.PHONY: deps deps-update lint template install wait status port-forward-grafana port-forward-prometheus port-forward-alertmanager uninstall
 
 deps:
 	helm dependency build $(CHART)
@@ -31,6 +31,7 @@ wait:
 	kubectl wait --for=create statefulset/$(RELEASE)-loki -n $(NAMESPACE) --timeout=300s
 	kubectl rollout status statefulset/$(RELEASE)-loki -n $(NAMESPACE) --timeout=300s
 	kubectl wait --for=condition=Available prometheus/$(RELEASE)-kube-prometh-prometheus -n $(NAMESPACE) --timeout=300s
+	kubectl wait --for=condition=Available alertmanager/$(RELEASE)-kube-prometh-alertmanager -n $(NAMESPACE) --timeout=300s
 
 status:
 	helm status $(RELEASE) -n $(NAMESPACE)
@@ -46,12 +47,21 @@ status:
 	@echo ""
 	@echo "ServiceMonitors:"
 	kubectl get servicemonitors -n $(NAMESPACE)
+	@echo ""
+	@echo "Alertmanager:"
+	kubectl get alertmanager -n $(NAMESPACE)
+	@echo ""
+	@echo "PrometheusRules:"
+	kubectl get prometheusrules -n $(NAMESPACE)
 
 port-forward-grafana:
 	kubectl port-forward -n $(NAMESPACE) svc/$(RELEASE)-grafana 3000:80
 
 port-forward-prometheus:
 	kubectl port-forward -n $(NAMESPACE) svc/$(RELEASE)-kube-prometh-prometheus 9090:9090
+
+port-forward-alertmanager:
+	kubectl port-forward -n $(NAMESPACE) svc/$(RELEASE)-kube-prometh-alertmanager 9093:9093
 
 uninstall:
 	helm uninstall $(RELEASE) -n $(NAMESPACE) --ignore-not-found

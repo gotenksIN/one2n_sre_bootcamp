@@ -1,0 +1,237 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "id": null,
+  "panels": [
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"] }
+      },
+      "title": "Ready Nodes (Cluster)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(kube_node_status_condition{condition=\"Ready\",status=\"true\"})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 2,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "title": "Pods by Phase",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum by (namespace, phase) (kube_pod_status_phase{namespace=~\"$namespace\"} == 1)",
+          "legendFormat": "{{namespace}}/{{phase}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 2 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "id": 3,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "title": "Unavailable Deployments",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum by (namespace, deployment) (kube_deployment_spec_replicas{namespace=~\"$namespace\"} - kube_deployment_status_replicas_available{namespace=~\"$namespace\"})",
+          "legendFormat": "{{namespace}}/{{deployment}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "id": 4,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "title": "Container Restarts",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum by (namespace, pod, container) (increase(kube_pod_container_status_restarts_total{namespace=~\"$namespace\"}[$__range]))",
+          "legendFormat": "{{namespace}}/{{pod}}/{{container}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "id": 5,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "title": "Pending Pods",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum by (namespace) (kube_pod_status_phase{namespace=~\"$namespace\",phase=\"Pending\"} == 1)",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "id": 6,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "title": "StatefulSet Replicas",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "kube_statefulset_status_replicas_available{namespace=~\"$namespace\"}",
+          "legendFormat": "{{namespace}}/{{statefulset}} available",
+          "refId": "A"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "kube_statefulset_replicas{namespace=~\"$namespace\"}",
+          "legendFormat": "{{namespace}}/{{statefulset}} desired",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
+      "id": 7,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "title": "PVC Phases",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum by (namespace, phase) (kube_persistentvolumeclaim_status_phase{namespace=~\"$namespace\"} == 1)",
+          "legendFormat": "{{namespace}}/{{phase}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["student-api", "milestone-11"],
+  "templating": {
+    "list": [
+      {
+        "datasource": { "uid": "prometheus" },
+        "definition": "label_values(kube_namespace_created, namespace)",
+        "label": "Namespace",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "name": "namespace",
+        "query": {
+          "query": "label_values(kube_namespace_created, namespace)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "Student API - Kubernetes State",
+  "uid": "student-api-kubernetes-state",
+  "version": 1
+}

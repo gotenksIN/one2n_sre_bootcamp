@@ -60,7 +60,8 @@ spec:
               vault kv put {{ .Values.bootstrap.secretPath }}/{{ .Values.bootstrap.observability.secretName }} \
                 grafanaAdminUser={{ .Values.bootstrap.observability.grafanaAdminUser | quote }} \
                 grafanaAdminPassword={{ $grafanaAdminPassword | quote }} \
-                postgresExporterPassword={{ $postgresExporterPassword | quote }}
+                postgresExporterPassword={{ $postgresExporterPassword | quote }} \
+                slackWebhookUrl={{ .Values.bootstrap.observability.dummySlackWebhookUrl | quote }}
               printf '%s\n' \
                 'path "{{ .Values.bootstrap.secretPath }}/data/{{ .Values.bootstrap.secretName }}" {' \
                 '  capabilities = ["read"]' \
