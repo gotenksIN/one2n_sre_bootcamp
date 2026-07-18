@@ -20,12 +20,12 @@ Create the environment file:
 cp vagrant/.env.example vagrant/.env
 ```
 
-Run these commands from the `vagrant/` directory:
+Run from the repository root:
 
 ```bash
-make build
-make up
-make status
+make -C vagrant build
+make -C vagrant up
+make -C vagrant status
 ```
 
 The API is available on `http://127.0.0.1:8080`.
@@ -33,9 +33,9 @@ The API is available on `http://127.0.0.1:8080`.
 ## Commands
 
 ```bash
-make logs   # Follow container logs
-make down   # Stop the stack
-make clean  # Remove containers and volumes
+make -C vagrant logs   # Follow container logs
+make -C vagrant down   # Stop the stack
+make -C vagrant clean  # Remove containers and volumes
 ```
 
 ## Verify

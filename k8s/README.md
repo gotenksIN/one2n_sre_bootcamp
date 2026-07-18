@@ -24,7 +24,7 @@ Vault runs in dev mode for this exercise.
 ### Create Cluster
 
 ```bash
-make cluster
+make -C k8s cluster
 ```
 
 Three nodes are created and automatically labeled:
@@ -35,22 +35,20 @@ Three nodes are created and automatically labeled:
 To label an existing cluster without recreating it:
 
 ```bash
-make label-nodes
+make -C k8s label-nodes
 ```
 
 ### Build And Load Image
 
-From the `k8s/` directory:
-
 ```bash
-make build
-make image-load-minikube
+make -C k8s build
+make -C k8s image-load-minikube
 ```
 
 For kind:
 
 ```bash
-make image-load-kind
+make -C k8s image-load-kind
 ```
 
 ### Create Secrets File
@@ -62,16 +60,16 @@ cp .env.example .env
 ### Install Dependencies And Seed Vault
 
 ```bash
-make eso-install
-make vault
-make bootstrap
+make -C k8s eso-install
+make -C k8s vault
+make -C k8s bootstrap
 ```
 
 ## Deploy
 
 ```bash
-make deploy
-make wait
+make -C k8s deploy
+make -C k8s wait
 ```
 
 The API waits for PostgreSQL and runs migrations before the Flask container starts.
@@ -85,7 +83,7 @@ curl http://$(minikube ip):30080/health
 Or use port forwarding:
 
 ```bash
-make port-forward
+make -C k8s port-forward
 curl http://127.0.0.1:5000/health
 ```
 
@@ -98,8 +96,8 @@ Expected response:
 ## Commands
 
 ```bash
-make status  # Show stack status
-make delete  # Remove stack manifests
+make -C k8s status  # Show stack status
+make -C k8s delete  # Remove stack manifests
 ```
 
 Useful checks:
@@ -112,9 +110,9 @@ kubectl describe externalsecret -n student-api student-api-secret
 
 ## Node Labels
 
-Labels are applied automatically by `make cluster`. To re-label an
+Labels are applied automatically by `make -C k8s cluster`. To re-label an
 existing cluster:
 
 ```bash
-make label-nodes
+make -C k8s label-nodes
 ```
