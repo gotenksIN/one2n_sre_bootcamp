@@ -1,81 +1,97 @@
 # Student REST API
 
-A lightweight REST API for managing student records built with Flask, Flask-SQLAlchemy, and PostgreSQL.
+Flask API backed by PostgreSQL in Docker Compose or SQLite for local
+development. The root `Makefile` owns application development, testing, image
+builds, and the local Compose stack.
 
-## Prerequisites
+## Requirements
 
-- **Docker**
-- **Docker Compose**
-- **Python 3.14+** and **uv** for tests/linting
+- Docker with Compose
+- `uv`
+- Python 3.14, installed by `uv` when required
 
-## Quick Start
-
-1. **Configure Environment**
-   ```bash
-   cp .env.example .env
-   cp .env.test.example .env.test
-   ```
-
-2. **Run with Docker Compose**
-   ```bash
-   make run
-   ```
-   Compose starts PostgreSQL, runs database migrations, and starts the API at `http://127.0.0.1:5000`.
-
-## API Endpoints
-
-- `GET /health` — Health status (also available at `/healthcheck`)
-- `GET /livez` — Liveness check
-- `GET /readyz` — Readiness check (DB reachable)
-- `GET /api/v1/students` — List all students
-- `POST /api/v1/students` — Create a student
-- `GET /api/v1/students/<id>` — Retrieve a student
-- `PUT /api/v1/students/<id>` — Update a student
-- `DELETE /api/v1/students/<id>` — Delete a student
-
-`POST /api/v1/students` returns `201 Created` on success. All other
-successful responses return `200 OK`.
-
-API testing is done via the `openapi.json` spec — import it into Postman or any
-OpenAPI-compatible client. The spec is generated from code, so it stays in sync
-with the implementation and replaces manual Postman collections.
-
-## Development
-
-### Local (SQLite, no Docker)
+## Configuration
 
 ```bash
-make local-setup  # Install deps and set up SQLite database
-make local-run    # Start the dev server at http://127.0.0.1:5000
+cp .env.example .env
+cp .env.test.example .env.test
 ```
 
-### Tests and Lint
+`.env` configures the Compose stack. `.env.test` configures the isolated test
+database on port `5433`.
 
-```bash
-make test  # Run tests against Dockerized PostgreSQL
-make lint  # Run lint checks (ruff)
-```
+## Architecture
 
-## Docker
+The root Makefile supports three execution paths:
 
-### Local Stack
+| Path | Flow |
+|---|---|
+| Local | Flask -> SQLite `dev.db` |
+| Compose | PostgreSQL -> one-shot migration -> Flask API on port `5000` |
+| Test | Temporary PostgreSQL -> migration -> pytest -> teardown |
 
-Run the containerized API and PostgreSQL using the semver-tagged version from `pyproject.toml`:
+The image version comes from `pyproject.toml`. `openapi.json` is generated from
+the application and is the canonical API client and testing artifact.
+
+## Run
+
+Containerized development:
 
 ```bash
 make run
+make logs
 ```
 
-The container automatically runs database migrations on startup and will be accessible at `http://127.0.0.1:5000`.
-
-Useful local commands:
+Local development without Dockerized PostgreSQL:
 
 ```bash
-make build    # Build the API image
-make db-up    # Start PostgreSQL only
-make api-up   # Start DB, run migrations, start API
-make logs     # Follow logs
-make migrate  # Run migrations
-make down     # Stop containers
-make clean    # Stop containers and remove the database volume
+make local-setup
+make local-run
 ```
+
+Run PostgreSQL and the API separately when debugging startup:
+
+```bash
+make db-up
+make migrate
+make api-up
+```
+
+## Quality Checks
+
+```bash
+make test
+make lint
+make openapi
+```
+
+`make test` recreates the test database and removes it after pytest exits.
+`make openapi` regenerates `openapi.json` using the project version.
+
+## Targets
+
+| Target | Purpose |
+|---|---|
+| `build` | Build `rest-api:<version>` |
+| `db-up` | Start PostgreSQL |
+| `api-up` | Start the API after its Compose dependencies |
+| `run` | Build and start the full Compose stack |
+| `migrate` | Run the migration service once |
+| `logs` | Follow Compose logs |
+| `down` | Stop containers |
+| `clean` | Stop containers and delete volumes |
+| `local-setup` | Install dependencies and migrate SQLite |
+| `local-run` | Run Flask against SQLite |
+| `test` | Run pytest against temporary PostgreSQL |
+| `lint`, `ruffcheck` | Run Ruff |
+| `openapi` | Regenerate `openapi.json` |
+| `ci-setup` | Install Python 3.14 and frozen dependencies |
+| `ci-build` | Build and push `IMAGE_REF:IMAGE_TAG` |
+
+## Deployment Documentation
+
+- [Raw Kubernetes manifests](k8s/README.md)
+- [Helm deployment](helm/README.md)
+- [ArgoCD GitOps deployment](argocd/README.md)
+- [Vagrant environment](vagrant/README.md)
+- [Database migrations](migrations/README)

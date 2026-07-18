@@ -1,27 +1,58 @@
 # Observability Chart
 
-Deploys Prometheus, Grafana, Loki, Alloy, Blackbox Exporter, PostgreSQL
-Exporter, Alertmanager, dashboards, and alert rules in the `observability`
-namespace.
+The `helm/observability/Makefile` manages the metrics, logs, dashboards, and
+alerting release in the `observability` namespace.
 
-Requires External Secrets Operator, Vault, and a node labeled
-`type=dependent_services`.
+[Back to the Helm README](../README.md) | [Back to the project README](../../README.md)
 
-## RED vs USE Metrics
+## Architecture
 
-- **RED** (Rate, Errors, Duration): Application-level metrics exposed by
-  `prometheus-flask-exporter` at `/metrics`. Covers request rate, error count,
-  and latency percentiles.
-- **USE** (Utilization, Saturation, Errors): Infrastructure-level metrics from
-  Node Exporter and kube-state-metrics. Covers CPU, memory, disk, network, and
-  Kubernetes object state.
+| Signal | Flow |
+|---|---|
+| API metrics | Flask `/metrics` -> ServiceMonitor -> Prometheus -> Grafana |
+| Database metrics | PostgreSQL -> PostgreSQL Exporter -> Prometheus -> Grafana |
+| Cluster metrics | Node Exporter and kube-state-metrics -> Prometheus -> Grafana |
+| Probe metrics | Blackbox Exporter -> Prometheus -> Grafana |
+| Application logs | Kubernetes pod logs -> Alloy -> Loki -> Grafana |
+| Alerts | PrometheusRule -> Alertmanager -> Slack |
+
+`kube-prometheus-stack` supplies Prometheus, Alertmanager, Grafana, Node
+Exporter, and kube-state-metrics. Separate chart dependencies supply Loki,
+Alloy, Blackbox Exporter, and PostgreSQL Exporter. Grafana discovers dashboards
+from labeled ConfigMaps and uses provisioned Prometheus and Loki data sources.
+
+Alloy replaces end-of-life Promtail as the Kubernetes log collector.
+
+## Dependencies
+
+This chart expects the following resources to exist before installation:
+
+- External Secrets Operator and its CRDs
+- Vault with the `observability` secret and Kubernetes auth role
+- The API and PostgreSQL release in `student-api`
+- A node labeled `type=dependent_services`
+
+For a complete deployment, use the ordered workflow in the
+[parent Helm README](../README.md). Running this chart alone is intended for
+observability-only development after those dependencies exist.
+
+## Run Order
+
+```bash
+make -C helm/observability deps
+make -C helm/observability lint
+make -C helm/observability template
+make -C helm/observability install
+make -C helm/observability wait
+make -C helm/observability status
+```
+
+Use `deps-update` only when intentionally changing dependency versions;
+`deps` builds the versions pinned in `Chart.lock`.
 
 ## Dashboards
 
-Four project dashboards and the chart's bundled Node Exporter dashboard are
-provisioned automatically via ConfigMaps:
-
-| Dashboard | UID | Data Source |
+| Dashboard | UID | Source |
 |---|---|---|
 | Student API - Database | `student-api-database` | Prometheus |
 | Student API - Application Errors | `student-api-application-errors` | Loki |
@@ -29,153 +60,78 @@ provisioned automatically via ConfigMaps:
 | Student API - Kubernetes State | `student-api-kubernetes-state` | Prometheus |
 | Student API - Blackbox | `student-api-blackbox` | Prometheus |
 
-Project dashboards are stored as JSON in `helm/observability/dashboards/` and
-packaged into ConfigMaps labeled `grafana_dashboard: "1"`. The Node Exporter
-dashboard is supplied by kube-prometheus-stack. The Grafana sidecar loads all
-of them automatically. UI edits are not persisted — export changes back to
-Git using **Share > Export > Export for sharing externally**.
+Project dashboard JSON is stored in `dashboards/`. The Node Exporter dashboard
+comes from kube-prometheus-stack. UI edits are not durable; export intended
+changes back to JSON.
 
 ## Alerts
 
-Ten alert rules are configured in three groups:
+Ten rules are grouped by signal:
 
-| Group | Alerts |
+| Group | Rules |
 |---|---|
-| infrastructure | HighNodeCPUUsage, HighNodeDiskUsage |
-| api-red | HighAPIErrorRate, HighAPIP90Latency, HighAPIP95Latency, HighAPIP99Latency, HighAPIRequestRate |
-| component-restarts | PostgreSQLRestarted, VaultServerRestarted, ArgoCDServerRestarted |
+| `infrastructure` | High node CPU and disk usage |
+| `api-red` | Error rate, p90/p95/p99 latency, and request rate |
+| `component-restarts` | PostgreSQL, Vault, and ArgoCD server restarts |
 
-Thresholds are in `values.yaml` under `alerts.thresholds`. Edit them there
-rather than in the template.
-
-Alertmanager routes all `warning` and `critical` alerts to Slack. Firing and
-resolved messages are both delivered.
+Thresholds and the evaluation window are configured under `alerts` in
+`values.yaml`. Alertmanager routes `warning` and `critical` alerts to Slack and
+sends resolved notifications.
 
 ## Slack Webhook
 
-The default Helm and ArgoCD workflows install the non-secret URL
-`https://example.invalid/slack-webhook`. This keeps a fresh deployment healthy
-without sending notifications anywhere.
+The default deployment uses `https://example.invalid/slack-webhook`. This keeps
+Alertmanager healthy without delivering notifications or storing a real
+webhook in Helm release history.
 
-To configure a real Slack webhook without putting it in Helm values or release
-history:
-
-1. Copy the example file:
-
-   ```bash
-   cp helm/vault/slack-webhook.local.example helm/vault/slack-webhook.local
-   ```
-
-2. Replace the example URL in `slack-webhook.local` with the real URL.
-
-3. Deploy the stack normally, then stream the webhook directly into Vault:
-
-   ```bash
-   make -C helm install
-   make -C helm set-slack-webhook
-   ```
-
-4. The Make target forces External Secrets to refresh. ExternalSecret
-   `observability-alertmanager-slack` syncs the value into
-   Kubernetes Secret `alertmanager-slack-webhook`, which Alertmanager mounts
-   at `/etc/alertmanager/secrets/alertmanager-slack-webhook/url`.
-
-Verify the secret exists (without decoding it):
+Inject a real webhook directly into Vault after the full stack is installed:
 
 ```bash
-kubectl get secret alertmanager-slack-webhook -n observability
+cp helm/vault/slack-webhook.local.example helm/vault/slack-webhook.local
+make -C helm set-slack-webhook
+```
+
+The ignored local file is streamed through `kubectl exec`; it is not passed as
+a Helm value. The target then forces External Secrets to refresh
+`alertmanager-slack-webhook`.
+
+Verify synchronization without decoding the Secret:
+
+```bash
 kubectl get externalsecret observability-alertmanager-slack -n observability
+kubectl get secret alertmanager-slack-webhook -n observability
 ```
-
-Confirm no real webhook is tracked:
-
-```bash
-git grep 'hooks\.slack\.com/services/' -- ':!helm/vault/slack-webhook.local.example'
-```
-
-## Deploy
-
-```bash
-make -C helm deps
-make -C helm lint
-make -C helm install
-make -C helm wait
-```
-
-Use either Helm or ArgoCD ownership, never both concurrently.
 
 ## Access
 
 ```bash
-make -C helm port-forward-grafana        # http://localhost:3000
-make -C helm port-forward-prometheus     # http://localhost:9090
-make -C helm port-forward-alertmanager   # http://localhost:9093
+make -C helm/observability port-forward-grafana
+make -C helm/observability port-forward-prometheus
+make -C helm/observability port-forward-alertmanager
 ```
 
-Prometheus targets at <http://localhost:9090/targets>. Rules at
-<http://localhost:9090/rules>. Alerts at <http://localhost:9090/alerts>.
+| Service | Local URL |
+|---|---|
+| Grafana | `http://127.0.0.1:3000` |
+| Prometheus | `http://127.0.0.1:9090` |
+| Alertmanager | `http://127.0.0.1:9093` |
 
-## Verify
+Prometheus targets and rules must report healthy before alert testing. Do not
+restart stateful services or fill a disk to force alerts; temporarily lower a
+threshold when a controlled rule test is required.
 
-```bash
-make -C helm status
-kubectl get servicemonitor,prometheusrule,alertmanager -n observability
-kubectl get externalsecret -n observability
-```
+## Targets
 
-All Prometheus targets must be UP. Rule evaluation must show no errors.
-
-## Synthetic Slack Test
-
-Port-forward Alertmanager, then submit a synthetic firing alert:
-
-```bash
-kubectl port-forward -n observability svc/observability-kube-prometh-alertmanager 9093:9093
-STARTS_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-curl -fsS -X POST http://localhost:9093/api/v2/alerts \
-  -H 'Content-Type: application/json' \
-  --data-binary "[{
-    \"labels\": {
-      \"alertname\": \"Milestone11SlackTest\",
-      \"severity\": \"warning\",
-      \"namespace\": \"observability\",
-      \"category\": \"test\"
-    },
-    \"annotations\": {
-      \"summary\": \"Milestone 11 Slack delivery test\",
-      \"description\": \"Synthetic alert proving Alertmanager can deliver a descriptive Slack message.\"
-    },
-    \"startsAt\": \"$STARTS_AT\",
-    \"generatorURL\": \"http://localhost:9090/alerts\"
-  }]"
-```
-
-Resolve it with an `endsAt` in the past:
-
-```bash
-ENDS_AT=$(date -u -d '-1 minute' +%Y-%m-%dT%H:%M:%SZ)
-curl -fsS -X POST http://localhost:9093/api/v2/alerts \
-  -H 'Content-Type: application/json' \
-  --data-binary "[{
-    \"labels\": {
-      \"alertname\": \"Milestone11SlackTest\",
-      \"severity\": \"warning\",
-      \"namespace\": \"observability\",
-      \"category\": \"test\"
-    },
-    \"annotations\": {
-      \"summary\": \"Milestone 11 Slack delivery test\",
-      \"description\": \"Synthetic alert proving Alertmanager can deliver a descriptive Slack message.\"
-    },
-    \"startsAt\": \"$STARTS_AT\",
-    \"endsAt\": \"$ENDS_AT\",
-    \"generatorURL\": \"http://localhost:9090/alerts\"
-  }]"
-```
-
-## Safe Testing Warnings
-
-- Do **not** restart Vault or PostgreSQL merely to test restart alerts.
-- Do **not** fill a disk to test the disk-usage alert.
-- Temporarily lower a threshold in `values.yaml` (e.g. `apiRequestRatePerSecond`)
-  to safely trigger a real Prometheus rule, then restore the original value.
+| Target | Purpose |
+|---|---|
+| `deps` | Build pinned chart dependencies |
+| `deps-update` | Resolve and update dependency versions |
+| `lint` | Lint the chart |
+| `template` | Render the chart with CRDs |
+| `install` | Install or upgrade the observability release |
+| `wait` | Wait for bootstrap jobs and workloads |
+| `status` | Show the release and monitored resources |
+| `port-forward-grafana` | Forward Grafana to port `3000` |
+| `port-forward-prometheus` | Forward Prometheus to port `9090` |
+| `port-forward-alertmanager` | Forward Alertmanager to port `9093` |
+| `uninstall` | Remove the observability release |

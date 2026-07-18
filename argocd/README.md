@@ -1,83 +1,66 @@
-# ArgoCD
+# ArgoCD Deployment
 
-Installs ArgoCD and deploys the application and observability stacks using
-GitOps.
+The `argocd/Makefile` installs ArgoCD and bootstraps the Helm stack through an
+app-of-apps workflow.
 
-## Prerequisites
+[Back to the project README](../README.md)
 
-- kubectl
-- Minikube
-- Helm and ArgoCD changes pushed to the configured Git repository
+## Architecture
 
-Create the three-node cluster:
+`bootstrap.yaml` creates the root `bootcamp` Application. It reads `argocd/apps`
+from Git and creates the project and four child Applications.
 
-```bash
-make -C k8s cluster
-```
+| Sync wave | Application | Chart |
+|---|---|---|
+| `-2` | `external-secrets` | `helm/external-secrets` |
+| `-1` | `vault` | `helm/vault` |
+| `0` | `stack` | `helm/stack` |
+| `1` | `observability` | `helm/observability` |
 
-ArgoCD components run in `argocd` on the node labeled
-`type=dependent_services`.
+All Applications use automated synchronization, pruning, and self-healing.
+ArgoCD reads the configured Git branch, not uncommitted local files.
 
-## Layout
+See the [Helm deployment README](../helm/README.md) for release architecture
+and the [observability README](../helm/observability/README.md) for dashboards,
+alerts, and Slack configuration.
 
-- `install/` - pinned ArgoCD installation
-- `bootstrap.yaml` - root Application
-- `apps/` - AppProject and child Applications
-- `Makefile` - install, deploy, status, and cleanup commands
+## Requirements
 
-## Deploy
+- A reachable Kubernetes cluster
+- `kubectl`
+- Repository changes pushed to the repository and revision configured in the
+  Application manifests
+- No directly installed Helm releases for the same resources
+
+## Run Order
+
+Install ArgoCD and deploy the root Application:
 
 ```bash
 make -C argocd deploy
 ```
 
-The child Applications sync in this order:
+The target runs `install`, applies `bootstrap.yaml`, then waits for the root and
+all child Applications to become `Synced` and `Healthy`.
 
-1. External Secrets Operator
-2. Vault
-3. API and PostgreSQL stack
-4. Observability stack
-
-Automated sync, pruning, and self-healing are enabled.
-
-Do not manage the observability release with Helm and ArgoCD simultaneously.
-
-## Verify
+Inspect the result:
 
 ```bash
 make -C argocd status
-curl http://$(minikube ip):30080/health
-curl http://$(minikube ip):30080/readyz
-kubectl get pods -n observability
 ```
 
-## ArgoCD UI
+Access the UI with `make -C argocd port-forward` at
+`https://127.0.0.1:8080`.
 
-```bash
-make -C argocd port-forward
-```
+## Targets
 
-Open `https://127.0.0.1:8080`. Get the initial password with:
+| Target | Purpose |
+|---|---|
+| `install` | Server-side apply the pinned ArgoCD installation |
+| `deploy` | Install ArgoCD and apply the app-of-apps bootstrap |
+| `wait` | Wait for root and child Applications |
+| `status` | Show Applications and ArgoCD pods |
+| `port-forward` | Forward the ArgoCD API and UI to port `8080` |
+| `uninstall` | Delete the bootstrap and ArgoCD installation |
 
-```bash
-kubectl get secret argocd-initial-admin-secret -n argocd \
-  -o jsonpath='{.data.password}' | base64 -d
-```
-
-## Image Updates
-
-`.github/workflows/ci.yml` builds and pushes the commit-tagged image on the
-self-hosted runner. After CI succeeds, `update-helm-image.yml` updates
-`helm/stack/values-image.yaml`. ArgoCD detects the commit and syncs the stack.
-
-## Commands
-
-```bash
-make -C argocd install       # Install ArgoCD only
-make -C argocd wait          # Wait for Applications
-make -C argocd status        # Show Applications and pods
-make -C argocd uninstall     # Remove ArgoCD
-```
-
-Do not install the same releases directly with `make -C helm install` while
-ArgoCD manages them.
+Do not run `make -C helm install` while ArgoCD owns these releases.

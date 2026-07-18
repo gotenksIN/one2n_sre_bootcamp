@@ -1,118 +1,86 @@
-# Kubernetes
+# Raw Kubernetes Deployment
 
-Deploys the API stack with raw Kubernetes manifests.
+The `k8s/Makefile` deploys the API with raw manifests. This path is useful for
+understanding the resources before introducing Helm or ArgoCD.
 
-## Prerequisites
+[Back to the project README](../README.md)
 
-- `kubectl`
+## Architecture
+
+| Namespace | Components |
+|---|---|
+| `default` | External Secrets Operator |
+| `vault` | Development Vault server |
+| `student-api` | PostgreSQL, Flask API, SecretStore, ExternalSecrets |
+
+Vault stores the PostgreSQL password and Flask secret. External Secrets
+Operator writes them to Kubernetes Secrets. PostgreSQL must become ready before
+the API migration and application containers can start.
+
+The Minikube target creates three nodes and assigns workload labels:
+
+| Node | Label |
+|---|---|
+| `minikube` | `type=application` |
+| `minikube-m02` | `type=database` |
+| `minikube-m03` | `type=dependent_services` |
+
+## Requirements
+
 - Docker
-- `curl`
-- `envsubst`
-- Minikube or kind
+- Minikube with the `kvm2` driver, unless overridden
+- `kubectl`, `curl`, and `envsubst`
 
-## Layout
+## Run Order
 
-- `vault.yml` - Vault in the `vault` namespace
-- `external-secrets.yml` - External Secrets resources in `student-api`
-- `database.yml` - PostgreSQL in `student-api`
-- `application.yml` - Flask API in `student-api`
-
-Vault runs in dev mode for this exercise.
-
-## Setup
-
-### Create Cluster
+Create the cluster and load the local image:
 
 ```bash
 make -C k8s cluster
-```
-
-Three nodes are created and automatically labeled:
-- `minikube` — `type=application`
-- `minikube-m02` — `type=database`
-- `minikube-m03` — `type=dependent_services`
-
-To label an existing cluster without recreating it:
-
-```bash
-make -C k8s label-nodes
-```
-
-### Build And Load Image
-
-```bash
 make -C k8s build
 make -C k8s image-load-minikube
 ```
 
-For kind:
+For kind, use `make -C k8s image-load-kind` instead of the Minikube image-load
+target. The `cluster` target itself is Minikube-specific.
+
+Configure secrets, then install dependencies in order:
 
 ```bash
-make -C k8s image-load-kind
-```
-
-### Create Secrets File
-
-```bash
-cp .env.example .env
-```
-
-### Install Dependencies And Seed Vault
-
-```bash
+cp k8s/.env.example k8s/.env
 make -C k8s eso-install
 make -C k8s vault
 make -C k8s bootstrap
 ```
 
-## Deploy
+Deploy and wait for secret synchronization, PostgreSQL, and the API:
 
 ```bash
 make -C k8s deploy
 make -C k8s wait
+make -C k8s status
 ```
 
-The API waits for PostgreSQL and runs migrations before the Flask container starts.
+Access the API with `make -C k8s port-forward`, then use
+`http://127.0.0.1:5000`.
 
-## Access API
+## Targets
 
-```bash
-curl http://$(minikube ip):30080/health
-```
+| Target | Purpose |
+|---|---|
+| `cluster` | Create and label a three-node Minikube cluster |
+| `label-nodes` | Reapply workload labels |
+| `build` | Build the local API image |
+| `image-load-minikube` | Load the image into Minikube |
+| `image-load-kind` | Load the image into kind |
+| `eso-install` | Install External Secrets Operator |
+| `vault` | Deploy development Vault |
+| `bootstrap` | Seed Vault and configure Kubernetes auth |
+| `deploy` | Apply database, secret, and API manifests |
+| `wait` | Wait for secrets and workloads |
+| `status` | Show deployed resources |
+| `port-forward` | Forward the API to port `5000` |
+| `delete` | Delete application and Vault manifests |
 
-Or use port forwarding:
-
-```bash
-make -C k8s port-forward
-curl http://127.0.0.1:5000/health
-```
-
-Expected response:
-
-```json
-{"status":"healthy"}
-```
-
-## Commands
-
-```bash
-make -C k8s status  # Show stack status
-make -C k8s delete  # Remove stack manifests
-```
-
-Useful checks:
-
-```bash
-kubectl logs -n student-api deployment/student-api
-kubectl logs -n student-api statefulset/postgres
-kubectl describe externalsecret -n student-api student-api-secret
-```
-
-## Node Labels
-
-Labels are applied automatically by `make -C k8s cluster`. To re-label an
-existing cluster:
-
-```bash
-make -C k8s label-nodes
-```
+Do not combine this deployment path with Helm or ArgoCD ownership on the same
+cluster.

@@ -1,1 +1,9 @@
-Single-database configuration for Flask.
+# Database Migrations
+
+Alembic migration environment for the Flask application. Revision files are in
+`versions/`; application configuration and metadata are loaded by `env.py`.
+
+Use `make migrate` from the repository root for the Compose database, or
+`make local-setup` to upgrade the local SQLite database.
+
+[Back to the project README](../README.md)
