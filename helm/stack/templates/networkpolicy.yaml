@@ -19,17 +19,13 @@ spec:
           port: {{ .Values.service.port }}
   egress:
     - to:
-        - podSelector: {}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+              app.kubernetes.io/instance: {{ .Release.Name }}
       ports:
         - protocol: TCP
           port: 5432
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: {{ .Values.namespaces.vault }}
-      ports:
-        - protocol: TCP
-          port: 8200
     - to:
         - namespaceSelector:
             matchLabels:
@@ -57,7 +53,9 @@ spec:
     - Ingress
   ingress:
     - from:
-        - podSelector: {}
+        - podSelector:
+            matchLabels:
+              {{- include "api.selectorLabels" . | nindent 14 }}
       ports:
         - protocol: TCP
           port: 5432

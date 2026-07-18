@@ -1,94 +1,74 @@
 # Helm
 
-Deploys the API stack with one Helm chart.
+Deploys the API, PostgreSQL, Vault, and External Secrets Operator using Helm.
 
 ## Prerequisites
 
-- `helm`
-- `kubectl`
 - Docker
-- Minikube or kind
+- Helm
+- kubectl
+- Minikube
 
-## Layout
+Create the three-node cluster:
 
-- `stack/` - Flask API, PostgreSQL, Vault, and Vault bootstrap job
-- `Makefile` - local build, render, deploy, and cleanup commands
+```bash
+make -C k8s cluster
+```
 
-Vault runs in dev mode for this exercise.
+## Charts
+
+- `external-secrets/` - External Secrets Operator and CRDs
+- `vault/` - development Vault server and bootstrap job
+- `stack/` - PostgreSQL, API, and ExternalSecret resources
+
+Vault uses development mode and the demo credentials in
+`vault/values-demo.yaml`.
 
 ## Setup
 
-From the `helm/` directory:
-
 ```bash
-make repo-update
-make deps
-make build
-```
-
-Load the image into the local cluster:
-
-```bash
-make image-load-minikube
-```
-
-For kind:
-
-```bash
-make image-load-kind
+make -C helm repo-update
+make -C helm deps
+make -C helm build
+make -C helm image-load-minikube
 ```
 
 ## Deploy
 
 ```bash
-make install
-make wait
+make -C helm lint
+make -C helm install
+make -C helm wait
 ```
 
-Namespaces:
+Releases are installed in dependency order:
 
-- `student-api` - API and PostgreSQL
-- `vault` - Vault and Vault Agent injector
+1. `external-secrets` in `external-secrets`
+2. `vault` in `vault`
+3. `stack` in `student-api`
 
-## Local Secrets
-
-The committed `values.yaml` sets sensitive fields to empty values. Provide
-them via a local values file before deploying:
+## Verify
 
 ```bash
-cp stack/values-local.yaml.example stack/values-local.yaml
-# edit stack/values-local.yaml with your dev secrets
-```
-
-The Makefile automatically includes `values-local.yaml` when it exists.
-
-For production use, External Secrets Operator or Vault should supply runtime
-secrets rather than static values files.
-
-## Access API
-
-```bash
+make -C helm status
 curl http://$(minikube ip):30080/health
+curl http://$(minikube ip):30080/readyz
 ```
 
-Or use port forwarding:
-
-```bash
-make port-forward
-curl http://127.0.0.1:5000/health
-```
-
-Expected response:
+Expected responses:
 
 ```json
 {"status":"healthy"}
+{"status":"ready"}
 ```
 
 ## Commands
 
 ```bash
-make lint      # Lint the chart
-make template  # Render manifests
-make status    # Show release and pod status
-make uninstall # Remove the release
+make -C helm template       # Render all charts
+make -C helm port-forward   # Forward API to 127.0.0.1:5000
+make -C helm uninstall      # Remove all releases
 ```
+
+PostgreSQL PVCs remain after uninstall. Do not use direct Helm deployment on a
+cluster where ArgoCD manages these releases.

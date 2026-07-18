@@ -1,0 +1,10 @@
+apiVersion: v2
+name: external-secrets-stack
+description: External Secrets Operator for the bootcamp cluster
+type: application
+version: 0.1.0
+appVersion: "2.7.0"
+dependencies:
+  - name: external-secrets
+    version: 2.7.0
+    repository: https://charts.external-secrets.io

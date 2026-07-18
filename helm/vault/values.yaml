@@ -1,0 +1,23 @@
+image:
+  repository: hashicorp/vault
+  tag: '1.20'
+  pullPolicy: IfNotPresent
+rootToken: ''
+bootstrap:
+  secretPath: secret
+  secretName: student-api
+  postgresPassword: ''
+  flaskSecretKey: ''
+  policyName: student-api
+  kubernetesRole: student-api
+  serviceAccountName: external-secrets-vault
+  serviceAccountNamespace: student-api
+nodeSelector:
+  type: dependent_services
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

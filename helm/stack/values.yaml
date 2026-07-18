@@ -1,11 +1,9 @@
-namespaces:
-  vault: vault
 replicaCount: 1
 revisionHistoryLimit: 3
 image:
   repository: ghcr.io/gotenksin/rest-api
-  tag: e1673ad0de73
-  pullPolicy: Always
+  tag: latest
+  pullPolicy: IfNotPresent
 imagePullSecrets: []
 service:
   type: NodePort
@@ -17,11 +15,16 @@ config:
   databasePort: '5432'
   databaseName: app
   databaseUser: app
-vaultInjector:
-  enabled: true
-  role: app
-  secretPath: secret
-  secretSubPath: app
+externalSecrets:
+  refreshInterval: 1m
+  serviceAccountName: external-secrets-vault
+  storeName: vault
+  vault:
+    server: http://vault.vault.svc.cluster.local:8200
+    path: secret
+    version: v2
+    role: student-api
+    secretKey: student-api
 migration:
   enabled: true
 waitForPostgres:
@@ -30,7 +33,6 @@ waitForPostgres:
     repository: postgres
     tag: 18-alpine
     pullPolicy: IfNotPresent
-vaultSecretWaitTimeout: 120
 nodeAffinity:
   enabled: true
   key: type
@@ -88,54 +90,6 @@ containerSecurityContext:
   capabilities:
     drop:
     - ALL
-vaultBootstrap:
-  enabled: true
-  image:
-    repository: hashicorp/vault
-    tag: '1.20'
-    pullPolicy: IfNotPresent
-  serviceAccountName: vault-bootstrap
-  vaultAddress: http://stack-vault.vault.svc.cluster.local:8200
-  rootToken: ''
-  secretPath: secret
-  secretSubPath: app
-  postgresPassword: ''
-  flaskSecretKey: ''
-  policyName: app
-  kubernetesRole: app
-  apiServiceAccount: stack
-  activeDeadlineSeconds: 180
-  ttlSecondsAfterFinished: 600
-  vaultStatusRetries: 60
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 250m
-      memory: 256Mi
-vault:
-  enabled: true
-  global:
-    namespace: vault
-  injector:
-    enabled: true
-  server:
-    dev:
-      enabled: true
-      devRootToken: root
-    affinity: "nodeAffinity:\n  requiredDuringSchedulingIgnoredDuringExecution:\n\
-      \      nodeSelectorTerms:\n        - matchExpressions:\n          - key: type\n\
-      \            operator: In\n            values:\n              - dependent_services\n"
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
-  ui:
-    enabled: true
 postgresql:
   image:
     repository: postgres

@@ -52,6 +52,27 @@ spec:
                     values:
                       - {{ .Values.postgresql.nodeAffinity.value }}
       {{- end }}
+      initContainers:
+        - name: volume-permissions
+          image: {{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}
+          imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - mkdir -p /var/lib/postgresql/data/pgdata && chown {{ .Values.postgresql.podSecurityContext.runAsUser }}:{{ .Values.postgresql.podSecurityContext.runAsGroup }} /var/lib/postgresql/data /var/lib/postgresql/data/pgdata
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+                - DAC_OVERRIDE
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
       containers:
         - name: postgresql
           image: {{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}

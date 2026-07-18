@@ -1,0 +1,5 @@
+# Public credentials for the disposable local bootcamp cluster only.
+rootToken: root
+bootstrap:
+  postgresPassword: bootcamp-password
+  flaskSecretKey: bootcamp-secret-key

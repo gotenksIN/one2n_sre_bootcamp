@@ -1,23 +1,26 @@
 APP_VERSION := $(shell grep -m 1 "version =" ../pyproject.toml | cut -d '"' -f 2)
-IMAGE_REF := ghcr.io/gotenksin/rest-api
 IMAGE_NAME := rest-api
 IMAGE := $(IMAGE_NAME):$(APP_VERSION)
+TIMEOUT ?= 5m
 
-RELEASE := stack
-NAMESPACE := student-api
-CHART := stack
-SET_IMAGE := --set image.repository=$(IMAGE_NAME) --set image.tag=$(APP_VERSION)
-LOCAL_VALUES := $(shell test -f $(CHART)/values-local.yaml && echo "--values $(CHART)/values-local.yaml" || true)
+ESO_RELEASE := external-secrets
+ESO_NAMESPACE := external-secrets
+VAULT_RELEASE := vault
+VAULT_NAMESPACE := vault
+STACK_RELEASE := stack
+STACK_NAMESPACE := student-api
+
+STACK_VALUES := --values stack/values.yaml --values stack/values-image.yaml
+LOCAL_IMAGE := --set image.repository=$(IMAGE_NAME) --set image.tag=$(APP_VERSION) --set image.pullPolicy=IfNotPresent
 
 .PHONY: repo-update deps build image-load-minikube image-load-kind lint template install wait status port-forward uninstall
 
 repo-update:
-	helm repo add hashicorp https://helm.releases.hashicorp.com
+	helm repo add external-secrets https://charts.external-secrets.io --force-update
 	helm repo update
 
 deps:
-	rm -f $(CHART)/charts/*.tgz $(CHART)/Chart.lock
-	helm dependency update $(CHART)
+	helm dependency update external-secrets
 
 build:
 	docker build -t $(IMAGE) ..
@@ -29,33 +32,57 @@ image-load-kind:
 	kind load docker-image $(IMAGE)
 
 lint:
-	helm lint $(CHART)
+	helm lint external-secrets
+	helm lint vault --values vault/values-demo.yaml
+	helm lint stack $(STACK_VALUES)
 
 template:
-	helm template $(RELEASE) $(CHART) --namespace $(NAMESPACE) $(SET_IMAGE) $(LOCAL_VALUES)
+	helm template $(ESO_RELEASE) external-secrets --namespace $(ESO_NAMESPACE)
+	helm template $(VAULT_RELEASE) vault --namespace $(VAULT_NAMESPACE) --values vault/values-demo.yaml
+	helm template $(STACK_RELEASE) stack --namespace $(STACK_NAMESPACE) $(STACK_VALUES) $(LOCAL_IMAGE)
 
 install:
-	helm upgrade --install $(RELEASE) $(CHART) \
-		--namespace $(NAMESPACE) \
+	helm upgrade --install $(ESO_RELEASE) external-secrets \
+		--namespace $(ESO_NAMESPACE) \
 		--create-namespace \
-		$(SET_IMAGE) \
-		$(LOCAL_VALUES)
-	kubectl rollout status deployment/$(RELEASE)-vault-agent-injector -n vault --timeout=180s
-	kubectl rollout restart deployment/$(RELEASE) -n $(NAMESPACE)
+		--rollback-on-failure \
+		--wait \
+		--timeout $(TIMEOUT)
+	helm upgrade --install $(VAULT_RELEASE) vault \
+		--namespace $(VAULT_NAMESPACE) \
+		--create-namespace \
+		--values vault/values-demo.yaml \
+		--rollback-on-failure \
+		--wait \
+		--wait-for-jobs \
+		--timeout $(TIMEOUT)
+	helm upgrade --install $(STACK_RELEASE) stack \
+		--namespace $(STACK_NAMESPACE) \
+		--create-namespace \
+		$(STACK_VALUES) \
+		$(LOCAL_IMAGE) \
+		--rollback-on-failure \
+		--wait \
+		--timeout $(TIMEOUT)
 
 wait:
-	kubectl rollout status statefulset/$(RELEASE)-vault -n vault --timeout=180s
-	kubectl rollout status deployment/$(RELEASE)-vault-agent-injector -n vault --timeout=180s
-	kubectl rollout status statefulset/$(RELEASE)-postgresql -n $(NAMESPACE) --timeout=180s
-	kubectl rollout status deployment/$(RELEASE) -n $(NAMESPACE) --timeout=180s
+	kubectl wait --for=condition=Available deployment --all -n $(ESO_NAMESPACE) --timeout=$(TIMEOUT)
+	kubectl wait --for=condition=Available deployment/$(VAULT_RELEASE) -n $(VAULT_NAMESPACE) --timeout=$(TIMEOUT)
+	kubectl wait --for=condition=Ready secretstore/vault -n $(STACK_NAMESPACE) --timeout=$(TIMEOUT)
+	kubectl wait --for=condition=Ready externalsecret --all -n $(STACK_NAMESPACE) --timeout=$(TIMEOUT)
+	kubectl rollout status statefulset/$(STACK_RELEASE)-postgresql -n $(STACK_NAMESPACE) --timeout=$(TIMEOUT)
+	kubectl rollout status deployment/$(STACK_RELEASE) -n $(STACK_NAMESPACE) --timeout=$(TIMEOUT)
 
 status:
-	helm status $(RELEASE) -n $(NAMESPACE)
-	kubectl get pods -n vault
-	kubectl get pods,svc -n $(NAMESPACE)
+	helm list --all-namespaces
+	kubectl get pods -n $(ESO_NAMESPACE)
+	kubectl get pods -n $(VAULT_NAMESPACE)
+	kubectl get pods,svc,externalsecret,secretstore -n $(STACK_NAMESPACE)
 
 port-forward:
-	kubectl port-forward -n $(NAMESPACE) svc/$(RELEASE) 5000:5000
+	kubectl port-forward -n $(STACK_NAMESPACE) svc/$(STACK_RELEASE) 5000:5000
 
 uninstall:
-	helm uninstall $(RELEASE) -n $(NAMESPACE) --ignore-not-found
+	helm uninstall $(STACK_RELEASE) -n $(STACK_NAMESPACE) --ignore-not-found
+	helm uninstall $(VAULT_RELEASE) -n $(VAULT_NAMESPACE) --ignore-not-found
+	helm uninstall $(ESO_RELEASE) -n $(ESO_NAMESPACE) --ignore-not-found

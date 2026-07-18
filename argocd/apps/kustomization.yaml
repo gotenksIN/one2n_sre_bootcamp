@@ -3,4 +3,6 @@ kind: Kustomization
 
 resources:
   - project.yaml
+  - external-secrets-application.yaml
+  - vault-application.yaml
   - stack-application.yaml

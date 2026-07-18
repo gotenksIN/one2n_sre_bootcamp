@@ -1,10 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: stack
+  name: vault
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: "-1"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -12,15 +12,15 @@ spec:
   source:
     repoURL: https://github.com/gotenksIN/one2n_sre_bootcamp.git
     targetRevision: master
-    path: helm/stack
+    path: helm/vault
     helm:
-      releaseName: stack
+      releaseName: vault
       valueFiles:
         - values.yaml
-        - values-image.yaml
+        - values-demo.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: student-api
+    namespace: vault
   syncPolicy:
     automated:
       prune: true

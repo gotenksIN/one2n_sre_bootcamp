@@ -1,0 +1,56 @@
+{{- $rootToken := required "rootToken is required" .Values.rootToken -}}
+{{- $postgresPassword := required "bootstrap.postgresPassword is required" .Values.bootstrap.postgresPassword -}}
+{{- $flaskSecretKey := required "bootstrap.flaskSecretKey is required" .Values.bootstrap.flaskSecretKey -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "vault.fullname" . }}-bootstrap
+  labels:
+    {{- include "vault.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 180
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vault-bootstrap
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ include "vault.fullname" . }}
+      restartPolicy: OnFailure
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      containers:
+        - name: bootstrap
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: VAULT_ADDR
+              value: http://{{ include "vault.fullname" . }}:8200
+            - name: VAULT_TOKEN
+              value: {{ $rootToken | quote }}
+          command:
+            - sh
+            - -ec
+            - |
+              until vault status >/dev/null 2>&1; do sleep 2; done
+              vault secrets enable -path={{ .Values.bootstrap.secretPath }} kv-v2 2>/dev/null || vault secrets list -format=json | grep -q '"{{ .Values.bootstrap.secretPath }}/"'
+              vault kv put {{ .Values.bootstrap.secretPath }}/{{ .Values.bootstrap.secretName }} \
+                postgresPassword={{ $postgresPassword | quote }} \
+                secretKey={{ $flaskSecretKey | quote }}
+              printf '%s\n' \
+                'path "{{ .Values.bootstrap.secretPath }}/data/{{ .Values.bootstrap.secretName }}" {' \
+                '  capabilities = ["read"]' \
+                '}' > /tmp/policy.hcl
+              vault policy write {{ .Values.bootstrap.policyName }} /tmp/policy.hcl
+              vault auth enable kubernetes 2>/dev/null || vault auth list -format=json | grep -q '"kubernetes/"'
+              vault write auth/kubernetes/config kubernetes_host=https://kubernetes.default.svc.cluster.local
+              vault write auth/kubernetes/role/{{ .Values.bootstrap.kubernetesRole }} \
+                bound_service_account_names={{ .Values.bootstrap.serviceAccountName }} \
+                bound_service_account_namespaces={{ .Values.bootstrap.serviceAccountNamespace }} \
+                policies={{ .Values.bootstrap.policyName }} \
+                audience=vault \
+                ttl=1h

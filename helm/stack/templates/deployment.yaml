@@ -15,16 +15,6 @@ spec:
     metadata:
       labels:
         {{- include "api.selectorLabels" . | nindent 8 }}
-      annotations:
-        vault.hashicorp.com/agent-inject: {{ .Values.vaultInjector.enabled | quote }}
-        vault.hashicorp.com/agent-init-first: "true"
-        vault.hashicorp.com/role: {{ .Values.vaultInjector.role | quote }}
-        vault.hashicorp.com/agent-inject-secret-config: {{ printf "%s/data/%s" .Values.vaultInjector.secretPath .Values.vaultInjector.secretSubPath | quote }}
-        vault.hashicorp.com/agent-inject-template-config: |
-          {{ "{{- with secret \"" }}{{ printf "%s/data/%s" .Values.vaultInjector.secretPath .Values.vaultInjector.secretSubPath }}{{ "\" -}}" }}
-          DATABASE_URL=postgresql://{{ .Values.config.databaseUser }}:{{ "{{ .Data.data.postgresPassword }}" }}@{{ .Values.config.databaseHost }}:{{ .Values.config.databasePort }}/{{ .Values.config.databaseName }}
-          SECRET_KEY={{ "{{ .Data.data.secretKey }}" }}
-          {{ "{{- end }}" }}
     spec:
       serviceAccountName: {{ include "api.fullname" . }}
       {{- if .Values.imagePullSecrets }}
@@ -54,7 +44,7 @@ spec:
           command:
             - sh
             - -c
-            - until pg_isready -h {{ .Values.config.databaseHost }} -p {{ .Values.config.databasePort }} -d {{ .Values.config.databaseName }}; do echo waiting for postgres; sleep 2; done
+            - until pg_isready -h {{ .Values.config.databaseHost }} -p {{ .Values.config.databasePort }} -d {{ .Values.config.databaseName }} -U {{ .Values.config.databaseUser }}; do echo waiting for postgres; sleep 2; done
           resources:
             {{- toYaml .Values.waitForPostgresResources | nindent 12 }}
         {{- end }}
@@ -63,21 +53,14 @@ spec:
           image: {{ include "api.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
-            - sh
-            - -c
-            - |
-              elapsed=0
-              while [ ! -f /vault/secrets/config ]; do
-                if [ "$elapsed" -ge {{ .Values.vaultSecretWaitTimeout }} ]; then
-                  echo "Timed out waiting for Vault secrets after ${elapsed}s"
-                  exit 1
-                fi
-                elapsed=$((elapsed + 1))
-                sleep 1
-              done
-              set -a && . /vault/secrets/config && set +a
-              flask --app app.main:app db upgrade
+            - flask
+            - --app
+            - app.main:app
+            - db
+            - upgrade
           envFrom:
+            - secretRef:
+                name: {{ include "api.fullname" . }}
             - configMapRef:
                 name: {{ include "api.fullname" . }}-config
           resources:
@@ -91,21 +74,17 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
           command:
-            - sh
-            - -c
-            - |
-              elapsed=0
-              while [ ! -f /vault/secrets/config ]; do
-                if [ "$elapsed" -ge {{ .Values.vaultSecretWaitTimeout }} ]; then
-                  echo "Timed out waiting for Vault secrets after ${elapsed}s"
-                  exit 1
-                fi
-                elapsed=$((elapsed + 1))
-                sleep 1
-              done
-              set -a && . /vault/secrets/config && set +a
-              exec gunicorn app.main:app --bind 0.0.0.0:{{ .Values.service.port }} --access-logfile - --error-logfile -
+            - gunicorn
+            - app.main:app
+            - --bind
+            - 0.0.0.0:{{ .Values.service.port }}
+            - --access-logfile
+            - '-'
+            - --error-logfile
+            - '-'
           envFrom:
+            - secretRef:
+                name: {{ include "api.fullname" . }}
             - configMapRef:
                 name: {{ include "api.fullname" . }}-config
           resources:
