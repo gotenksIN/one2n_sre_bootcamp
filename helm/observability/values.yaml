@@ -1,0 +1,558 @@
+externalSecrets:
+  refreshInterval: 1m
+  serviceAccountName: observability-eso
+  storeName: vault
+  vault:
+    server: http://vault.vault.svc.cluster.local:8200
+    path: secret
+    version: v2
+    role: observability
+    applicationSecretKey: student-api
+    observabilitySecretKey: observability
+
+postgresBootstrap:
+  image:
+    repository: postgres
+    tag: 18-alpine
+    pullPolicy: IfNotPresent
+  host: stack-postgresql.student-api.svc.cluster.local
+  port: "5432"
+  database: app
+  adminUser: app
+  exporterUser: metrics_exporter
+  maxAttempts: 60
+  retryIntervalSeconds: 2
+  nodeSelector:
+    type: dependent_services
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+kube-prometheus-stack:
+  enabled: true
+
+  crds:
+    enabled: true
+
+  prometheusOperator:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                    - dependent_services
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      runAsGroup: 65534
+      fsGroup: 65534
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+      - name: kube-prometheus-stack
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+
+  defaultRules:
+    create: false
+    rules:
+      alertmanager: false
+      etcd: false
+      configReloaders: false
+      general: false
+      k8sContainerCpuUsage: false
+      k8sContainerMemory: false
+      kubeApiserverAvailability: false
+      kubeApiserverBurnrate: false
+      kubeApiserverHistogram: false
+      kubeApiserverSlos: false
+      kubeControllerManager: false
+      kubelet: false
+      kubeProxy: false
+      kubePrometheusGeneral: false
+      kubePrometheusNodeRecording: false
+      kubernetesApps: false
+      kubernetesResources: false
+      kubernetesStorage: false
+      kubernetesSystem: false
+      kubeScheduler: false
+      kubeStateMetrics: false
+      network: false
+      node: false
+      nodeExporterAlerting: false
+      nodeExporterRecording: false
+      prometheus: false
+      prometheusOperator: false
+
+  prometheus:
+    enabled: true
+    serviceAccount:
+      create: true
+      name: prometheus
+    prometheusSpec:
+      replicas: 1
+      retention: 15d
+      retentionSize: 9GiB
+      scrapeInterval: 30s
+
+      serviceMonitorSelectorNilUsesHelmValues: false
+      serviceMonitorSelector: {}
+      podMonitorSelectorNilUsesHelmValues: false
+      podMonitorSelector: {}
+      probeSelectorNilUsesHelmValues: false
+      probeSelector: {}
+
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: local-path
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
+
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: type
+                    operator: In
+                    values:
+                      - dependent_services
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+
+  alertmanager:
+    enabled: false
+
+  grafana:
+    enabled: true
+    admin:
+      existingSecret: grafana-admin-credentials
+      userKey: admin-user
+      passwordKey: admin-password
+    additionalDataSources:
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        url: http://observability-loki-gateway.observability.svc.cluster.local
+        editable: false
+    sidecar:
+      datasources:
+        enabled: true
+        alertmanager:
+          enabled: false
+        label: grafana_datasource
+        labelValue: "1"
+        searchNamespace: ALL
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                    - dependent_services
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 472
+      runAsGroup: 472
+      fsGroup: 472
+      seccompProfile:
+        type: RuntimeDefault
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      capabilities:
+        drop:
+          - ALL
+
+  kube-state-metrics:
+    enabled: true
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                    - dependent_services
+
+  prometheus-node-exporter:
+    enabled: true
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+  kubeControllerManager:
+    enabled: false
+  kubeScheduler:
+    enabled: false
+  kubeEtcd:
+    enabled: false
+  kubeProxy:
+    enabled: false
+
+loki:
+  enabled: true
+  deploymentMode: SingleBinary
+  loki:
+    auth_enabled: false
+    commonConfig:
+      replication_factor: 1
+    storage:
+      type: filesystem
+    schemaConfig:
+      configs:
+        - from: "2026-01-01"
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    limits_config:
+      retention_period: 168h
+    compactor:
+      working_directory: /var/loki/compactor
+      retention_enabled: true
+      delete_request_store: filesystem
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  backend:
+    replicas: 0
+  singleBinary:
+    replicas: 1
+    initContainers:
+      - name: init-storage-permissions
+        image: busybox:1.37
+        command:
+          - sh
+          - -c
+          - chown -R 10001:10001 /var/loki
+        volumeMounts:
+          - name: storage
+            mountPath: /var/loki
+        securityContext:
+          runAsUser: 0
+          runAsNonRoot: false
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+            add:
+              - CHOWN
+    persistence:
+      enabled: true
+      storageClass: local-path
+      size: 10Gi
+      enableStatefulSetAutoDeletePVC: false
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                    - dependent_services
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 10001
+      runAsGroup: 10001
+      fsGroup: 10001
+      seccompProfile:
+        type: RuntimeDefault
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      capabilities:
+        drop:
+          - ALL
+  chunksCache:
+    enabled: false
+  resultsCache:
+    enabled: false
+  lokiCanary:
+    enabled: false
+  test:
+    enabled: false
+  gateway:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                    - dependent_services
+
+alloy:
+  enabled: true
+  controller:
+    type: deployment
+    replicas: 1
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                    - dependent_services
+    volumes:
+      extra:
+        - name: storage
+          emptyDir: {}
+  global:
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      runAsGroup: 65534
+      fsGroup: 65534
+      seccompProfile:
+        type: RuntimeDefault
+  alloy:
+    configMap:
+      create: false
+      name: alloy-config
+      key: config.alloy
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    mounts:
+      extra:
+        - name: storage
+          mountPath: /tmp/alloy
+  configReloader:
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+
+blackbox-exporter:
+  enabled: true
+  config:
+    modules:
+      http_2xx:
+        prober: http
+        timeout: 5s
+        http:
+          valid_http_versions:
+            - HTTP/1.1
+            - HTTP/2.0
+          method: GET
+          follow_redirects: true
+          preferred_ip_protocol: ip4
+      http_2xx_vault:
+        prober: http
+        timeout: 5s
+        http:
+          valid_status_codes: [200, 429]
+          method: GET
+          valid_http_versions:
+            - HTTP/1.1
+            - HTTP/2.0
+          headers:
+            Accept: application/json
+      http_2xx_insecure:
+        prober: http
+        timeout: 5s
+        http:
+          method: GET
+          tls_config:
+            insecure_skip_verify: true
+  serviceMonitor:
+    enabled: true
+    defaults:
+      interval: 30s
+      scrapeTimeout: 10s
+      module: http_2xx
+    targets:
+      - name: rest-api
+        url: http://stack.student-api.svc.cluster.local:5000/health
+        module: http_2xx
+      - name: argocd-server
+        url: https://argocd-server.argocd.svc.cluster.local/healthz
+        module: http_2xx_insecure
+      - name: vault
+        url: http://vault.vault.svc.cluster.local:8200/v1/sys/health
+        module: http_2xx_vault
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: type
+                operator: In
+                values:
+                  - dependent_services
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+postgres-exporter:
+  enabled: true
+  deployment:
+    annotations:
+      argocd.argoproj.io/sync-wave: "1"
+  annotations:
+    observability.stack/bootstrap-revision: "1"
+  initContainers:
+    - name: wait-for-credential-revision
+      image: busybox:1.37
+      command:
+        - sh
+        - -c
+        - until [ "$(cat /credentials/bootstrap-revision 2>/dev/null || true)" = "$EXPECTED_REVISION" ]; do sleep 2; done
+      env:
+        - name: EXPECTED_REVISION
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['observability.stack/bootstrap-revision']
+      volumeMounts:
+        - name: exporter-credentials
+          mountPath: /credentials
+          readOnly: true
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+  extraVolumes:
+    - name: exporter-credentials
+      secret:
+        secretName: postgres-exporter-credentials
+        optional: true
+  config:
+    datasource:
+      host: stack-postgresql.student-api.svc.cluster.local
+      port: "5432"
+      user: metrics_exporter
+      database: app
+      sslmode: disable
+      passwordSecret:
+        name: postgres-exporter-credentials
+        key: password
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: type
+                operator: In
+                values:
+                  - dependent_services
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL

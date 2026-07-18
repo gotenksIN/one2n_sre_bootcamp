@@ -129,3 +129,4 @@ podDisruptionBudget:
   minAvailable: 1
 networkPolicy:
   enabled: true
+  observabilityNamespace: observability

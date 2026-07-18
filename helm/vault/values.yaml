@@ -12,6 +12,15 @@ bootstrap:
   kubernetesRole: student-api
   serviceAccountName: external-secrets-vault
   serviceAccountNamespace: student-api
+  observability:
+    secretName: observability
+    policyName: observability
+    kubernetesRole: observability
+    serviceAccountName: observability-eso
+    serviceAccountNamespace: observability
+    grafanaAdminUser: admin
+    grafanaAdminPassword: ''
+    postgresExporterPassword: ''
 nodeSelector:
   type: dependent_services
 resources:

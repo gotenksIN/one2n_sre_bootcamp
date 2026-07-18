@@ -6,3 +6,4 @@ resources:
   - external-secrets-application.yaml
   - vault-application.yaml
   - stack-application.yaml
+  - observability-application.yaml

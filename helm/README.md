@@ -1,6 +1,7 @@
 # Helm
 
-Deploys the API, PostgreSQL, Vault, and External Secrets Operator using Helm.
+Deploys the API, PostgreSQL, Vault, External Secrets Operator, and
+observability stack using Helm.
 
 ## Prerequisites
 
@@ -20,6 +21,7 @@ make -C k8s cluster
 - `external-secrets/` - External Secrets Operator and CRDs
 - `vault/` - development Vault server and bootstrap job
 - `stack/` - PostgreSQL, API, and ExternalSecret resources
+- `observability/` - Prometheus, Grafana, Loki, Alloy, and exporters
 
 Vault uses development mode and the demo credentials in
 `vault/values-demo.yaml`.
@@ -46,6 +48,7 @@ Releases are installed in dependency order:
 1. `external-secrets` in `external-secrets`
 2. `vault` in `vault`
 3. `stack` in `student-api`
+4. `observability` in `observability`
 
 ## Verify
 

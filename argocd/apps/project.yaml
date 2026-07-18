@@ -16,6 +16,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: student-api
       server: https://kubernetes.default.svc
+    - namespace: observability
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: "*"
       kind: "*"

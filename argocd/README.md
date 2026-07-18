@@ -1,6 +1,7 @@
 # ArgoCD
 
-Installs ArgoCD and deploys the Helm stack using GitOps.
+Installs ArgoCD and deploys the application and observability stacks using
+GitOps.
 
 ## Prerequisites
 
@@ -35,8 +36,11 @@ The child Applications sync in this order:
 1. External Secrets Operator
 2. Vault
 3. API and PostgreSQL stack
+4. Observability stack
 
 Automated sync, pruning, and self-healing are enabled.
+
+Do not manage the observability release with Helm and ArgoCD simultaneously.
 
 ## Verify
 
@@ -44,6 +48,7 @@ Automated sync, pruning, and self-healing are enabled.
 make -C argocd status
 curl http://$(minikube ip):30080/health
 curl http://$(minikube ip):30080/readyz
+kubectl get pods -n observability
 ```
 
 ## ArgoCD UI

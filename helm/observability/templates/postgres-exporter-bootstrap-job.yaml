@@ -1,0 +1,91 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-pg-monitor-bootstrap-{{ index .Values "postgres-exporter" "annotations" "observability.stack/bootstrap-revision" }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    {{- include "observability.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pg-monitor-bootstrap
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        {{- include "observability.labels" . | nindent 8 }}
+        app.kubernetes.io/component: pg-monitor-bootstrap
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      nodeSelector:
+        {{- toYaml .Values.postgresBootstrap.nodeSelector | nindent 8 }}
+      containers:
+        - name: bootstrap
+          image: {{ .Values.postgresBootstrap.image.repository }}:{{ .Values.postgresBootstrap.image.tag }}
+          imagePullPolicy: {{ .Values.postgresBootstrap.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              expected_revision={{ index .Values "postgres-exporter" "annotations" "observability.stack/bootstrap-revision" | quote }}
+              attempts=0
+              until [ -s /etc/postgres-admin/password ] \
+                && [ -s /etc/postgres-exporter/password ] \
+                && [ "$(cat /etc/postgres-exporter/bootstrap-revision 2>/dev/null || true)" = "$expected_revision" ]; do
+                attempts=$((attempts + 1))
+                [ "$attempts" -lt {{ .Values.postgresBootstrap.maxAttempts }} ] || { echo "database credentials were not created"; exit 1; }
+                sleep {{ .Values.postgresBootstrap.retryIntervalSeconds }}
+              done
+
+              admin_password="$(cat /etc/postgres-admin/password)"
+              export EXPORTER_PASSWORD="$(cat /etc/postgres-exporter/password)"
+              attempts=0
+              until PGPASSWORD="$admin_password" pg_isready \
+                -h {{ .Values.postgresBootstrap.host }} \
+                -p {{ .Values.postgresBootstrap.port }} \
+                -U {{ .Values.postgresBootstrap.adminUser }} \
+                -d {{ .Values.postgresBootstrap.database }} >/dev/null 2>&1; do
+                attempts=$((attempts + 1))
+                [ "$attempts" -lt {{ .Values.postgresBootstrap.maxAttempts }} ] || { echo "database did not become ready"; exit 1; }
+                sleep {{ .Values.postgresBootstrap.retryIntervalSeconds }}
+              done
+
+              PGPASSWORD="$admin_password" psql \
+                -h {{ .Values.postgresBootstrap.host }} \
+                -p {{ .Values.postgresBootstrap.port }} \
+                -U {{ .Values.postgresBootstrap.adminUser }} \
+                -d {{ .Values.postgresBootstrap.database }} <<'SQL'
+              \getenv exporter_password EXPORTER_PASSWORD
+              SELECT format('CREATE ROLE {{ .Values.postgresBootstrap.exporterUser }} WITH LOGIN PASSWORD %L', :'exporter_password')
+                WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{{ .Values.postgresBootstrap.exporterUser }}') \gexec
+              ALTER ROLE {{ .Values.postgresBootstrap.exporterUser }} WITH LOGIN PASSWORD :'exporter_password';
+              GRANT pg_monitor TO {{ .Values.postgresBootstrap.exporterUser }};
+              SQL
+              echo "{{ .Values.postgresBootstrap.exporterUser }} role provisioned"
+          volumeMounts:
+            - name: postgres-admin
+              mountPath: /etc/postgres-admin
+              readOnly: true
+            - name: postgres-exporter
+              mountPath: /etc/postgres-exporter
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.postgresBootstrap.resources | nindent 12 }}
+      volumes:
+        - name: postgres-admin
+          secret:
+            secretName: postgres-admin-credentials
+            optional: true
+        - name: postgres-exporter
+          secret:
+            secretName: postgres-exporter-credentials
+            optional: true

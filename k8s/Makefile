@@ -15,12 +15,14 @@ ESO_VERSION := v2.7.0
 ESO_MANIFEST := https://github.com/external-secrets/external-secrets/releases/download/$(ESO_VERSION)/external-secrets.yaml
 ESO_DEPLOYMENTS := external-secrets external-secrets-webhook external-secrets-cert-controller
 MINIKUBE_CNI ?= calico
+MINIKUBE_DRIVER ?= kvm2
 CLUSTER_TIMEOUT ?= 180s
 
 DEPENDENT_SERVICES_AFFINITY := '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"weight":100,"preference":{"matchExpressions":[{"key":"type","operator":"In","values":["dependent_services"]}]}}]}}}}}}'
 
 cluster:
-	minikube start --nodes 3 --cni=$(MINIKUBE_CNI)
+	minikube start --nodes 3 --cni=$(MINIKUBE_CNI) --driver=$(MINIKUBE_DRIVER)
+	minikube addons enable storage-provisioner-rancher
 	$(MAKE) label-nodes
 	kubectl wait --for=condition=Ready nodes --all --timeout=$(CLUSTER_TIMEOUT)
 	@if [ "$(MINIKUBE_CNI)" = "calico" ]; then \

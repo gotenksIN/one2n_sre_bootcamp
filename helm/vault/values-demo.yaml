@@ -3,3 +3,6 @@ rootToken: root
 bootstrap:
   postgresPassword: bootcamp-password
   flaskSecretKey: bootcamp-secret-key
+  observability:
+    grafanaAdminPassword: bootcamp-grafana-password
+    postgresExporterPassword: bootcamp-exporter-password

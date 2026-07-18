@@ -1,6 +1,8 @@
 {{- $rootToken := required "rootToken is required" .Values.rootToken -}}
 {{- $postgresPassword := required "bootstrap.postgresPassword is required" .Values.bootstrap.postgresPassword -}}
 {{- $flaskSecretKey := required "bootstrap.flaskSecretKey is required" .Values.bootstrap.flaskSecretKey -}}
+{{- $grafanaAdminPassword := required "bootstrap.observability.grafanaAdminPassword is required" .Values.bootstrap.observability.grafanaAdminPassword -}}
+{{- $postgresExporterPassword := required "bootstrap.observability.postgresExporterPassword is required" .Values.bootstrap.observability.postgresExporterPassword -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -52,5 +54,24 @@ spec:
                 bound_service_account_names={{ .Values.bootstrap.serviceAccountName }} \
                 bound_service_account_namespaces={{ .Values.bootstrap.serviceAccountNamespace }} \
                 policies={{ .Values.bootstrap.policyName }} \
+                audience=vault \
+                ttl=1h
+
+              vault kv put {{ .Values.bootstrap.secretPath }}/{{ .Values.bootstrap.observability.secretName }} \
+                grafanaAdminUser={{ .Values.bootstrap.observability.grafanaAdminUser | quote }} \
+                grafanaAdminPassword={{ $grafanaAdminPassword | quote }} \
+                postgresExporterPassword={{ $postgresExporterPassword | quote }}
+              printf '%s\n' \
+                'path "{{ .Values.bootstrap.secretPath }}/data/{{ .Values.bootstrap.secretName }}" {' \
+                '  capabilities = ["read"]' \
+                '}' \
+                'path "{{ .Values.bootstrap.secretPath }}/data/{{ .Values.bootstrap.observability.secretName }}" {' \
+                '  capabilities = ["read"]' \
+                '}' > /tmp/observability-policy.hcl
+              vault policy write {{ .Values.bootstrap.observability.policyName }} /tmp/observability-policy.hcl
+              vault write auth/kubernetes/role/{{ .Values.bootstrap.observability.kubernetesRole }} \
+                bound_service_account_names={{ .Values.bootstrap.observability.serviceAccountName }} \
+                bound_service_account_namespaces={{ .Values.bootstrap.observability.serviceAccountNamespace }} \
+                policies={{ .Values.bootstrap.observability.policyName }} \
                 audience=vault \
                 ttl=1h

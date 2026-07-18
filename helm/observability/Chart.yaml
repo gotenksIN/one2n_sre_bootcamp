@@ -1,0 +1,33 @@
+apiVersion: v2
+name: observability
+version: 0.1.0
+appVersion: "0.1.0"
+description: Observability stack for the Student API (bootcamp milestone 10)
+
+dependencies:
+  - name: kube-prometheus-stack
+    version: "87.16.1"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: kube-prometheus-stack.enabled
+
+  - name: loki
+    version: "6.6.0"
+    repository: https://grafana-community.github.io/helm-charts
+    condition: loki.enabled
+
+  - name: alloy
+    version: "1.10.1"
+    repository: https://grafana.github.io/helm-charts
+    condition: alloy.enabled
+
+  - name: prometheus-blackbox-exporter
+    alias: blackbox-exporter
+    version: "9.0.0"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: blackbox-exporter.enabled
+
+  - name: prometheus-postgres-exporter
+    alias: postgres-exporter
+    version: "7.0.0"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: postgres-exporter.enabled
