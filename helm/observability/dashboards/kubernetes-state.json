@@ -209,7 +209,7 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["student-api", "milestone-11"],
+  "tags": ["student-api", "observability"],
   "templating": {
     "list": [
       {

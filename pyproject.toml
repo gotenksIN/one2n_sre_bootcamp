@@ -1,6 +1,6 @@
 [project]
 name = "rest"
-version = "0.1.0"
+version = "1.0.0"
 description = "Student CRUD REST API built with Flask"
 readme = "README.md"
 requires-python = ">=3.14"

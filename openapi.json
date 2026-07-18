@@ -2,7 +2,7 @@
   "info": {
     "description": "CRUD REST API for managing student records",
     "title": "Student REST API",
-    "version": "0.1.0"
+    "version": "1.0.0"
   },
   "paths": {
     "/health": {
